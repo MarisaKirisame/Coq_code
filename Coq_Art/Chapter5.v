@@ -314,4 +314,261 @@ Section on_ex.
     apply H.
   Qed.
 End on_ex.
+
+Require Import Arith.
+
+Theorem plus_permute2 :
+  forall n m p:nat, n + m + p = n + p + m.
+  intros.
+  rewrite plus_assoc_reverse.
+  rewrite plus_assoc_reverse.
+  rewrite plus_comm.
+  rewrite (plus_comm n).
+  rewrite (plus_comm p).
+  reflexivity.
+Qed.
+
+Goal forall (A:Set) (a b c:A), a = b -> b = c -> a = c.
+  intros.
+  rewrite <- H0.
+  assumption.
+Qed.
+
+Definition my_False : Prop := forall P:Prop, P.
+
+Definition my_not (P:Prop) : Prop := P -> my_False.
+
+Notation "! x"  := (my_not x)(at level 1, no associativity).
+
+Goal forall P:Prop, ! ! ! P -> ! P.
+  unfold my_not.
+  intros.
+  apply H.
+  intros.
+  apply H0.
+  assumption.
+Qed.
+
+Goal forall P Q:Prop, ! ! ! P -> P -> Q.
+  unfold my_not.
+  intros.
+  apply H.
+  intros.
+  apply H0.
+  assumption.
+Qed.
+
+Goal forall P Q:Prop, (P -> Q) -> ! Q -> ! P.
+  unfold my_not.
+  intros.
+  apply H0.
+  apply H.
+  assumption.
+Qed.
+
+Goal forall P Q R:Prop, (P -> Q) -> (P -> ! Q) -> P -> R.
+  unfold my_not.
+  intros.
+  apply H0;
+  try apply H;
+  assumption.
+Qed.
+
+Require Import Relations.
+
+Section impredicative_eq.
+  Variable A : Set.
+  Set Implicit Arguments.
+  Definition impredicative_eq (a b:A) : Prop := forall P:A -> Prop, P a -> P b.
+  Ltac first_step := 
+    unfold
+      symmetric,
+      reflexive,
+      transitive,
+      equiv,
+      inclusion,
+      impredicative_eq.
+  Theorem impredicative_eq_sym : symmetric A impredicative_eq.
+    first_step.
+    intros a b H Q.
+    apply H.
+    trivial.
+  Qed.
+
+  Theorem impredicative_eq_refl : reflexive A impredicative_eq.
+    first_step.
+    intros.
+    assumption.
+  Qed.
+
+  Theorem impredicative_eq_trans :  transitive A impredicative_eq.
+    first_step.
+    intros.
+    apply H0.
+    apply H.
+    assumption.
+  Qed.
+
+  Theorem impredicative_eq_equiv : equiv A impredicative_eq.
+    unfold equiv.
+    repeat split.
+    apply impredicative_eq_refl.
+    apply impredicative_eq_trans.
+    apply impredicative_eq_sym.
+  Qed.
+
+  Theorem impredicative_eq_least :
+    forall R:relation A, reflexive A R -> inclusion A impredicative_eq R.
+    first_step.
+    intros.
+    apply H0.
+    apply H.
+  Qed.
+
+  Theorem impredicative_eq_eq : forall a b:A, impredicative_eq a b -> a = b.
+    first_step.
+    intros.
+    apply H.
+    reflexivity.
+  Qed.
+
+  Theorem eq_impredicative_eq : forall a b:A, a = b -> impredicative_eq a b.
+    first_step.
+    intros.
+    rewrite <- H.
+    assumption.
+  Qed.
   
+  Theorem impredicative_eq_ind :
+    forall (x:A) (P:A -> Prop), P x -> forall y:A, impredicative_eq x y -> P y.
+    first_step.
+    intros.
+    apply H0.
+    assumption.
+  Qed.
+End impredicative_eq.
+
+Definition my_and (P Q:Prop) : Prop := forall R:Prop, (P -> Q -> R) -> R.
+
+Definition my_or (P Q:Prop) : Prop :=
+  forall R:Prop, (P -> R) -> (Q -> R) -> R.
+
+Definition my_ex (A:Set) (P:A -> Prop) : Prop :=
+  forall R:Prop, (forall x:A, P x -> R) -> R.
+
+Theorem my_and_left : forall P Q:Prop, my_and P Q -> P.
+  unfold my_and.
+  intros.
+  apply H.
+  intros.
+  assumption.
+Qed.
+
+Theorem my_and_right : forall P Q:Prop, my_and P Q -> Q.
+  unfold my_and.
+  intros.
+  apply H.
+  intros.
+  assumption.
+Qed.
+
+Theorem my_and_ind : forall P Q R:Prop, (P -> Q -> R) -> my_and P Q -> R.
+  unfold my_and.
+  intros.
+  apply H0.
+  assumption.
+Qed.
+
+Theorem my_or_introl : forall P Q:Prop, P -> my_or P Q.
+  unfold my_or.
+  intros.
+  apply H0.
+  assumption.
+Qed.
+
+Theorem my_or_intror : forall P Q:Prop, Q -> my_or P Q.
+  unfold my_or.
+  intros.
+  apply H1.
+  assumption.
+Qed.
+
+Theorem my_or_ind : forall P Q R:Prop, (P -> R) -> (Q -> R) -> my_or P Q -> R.
+  unfold my_or.
+  intros.
+  apply H1;
+  assumption.
+Qed.
+
+Theorem my_or_False : forall P:Prop, my_or P my_False -> P.
+  unfold my_or, my_False.
+  intros.
+  apply H.
+  trivial.
+  intros.
+  apply H0.
+Qed.
+
+Theorem my_or_comm : forall P Q:Prop, my_or P Q -> my_or Q P.
+  unfold my_or.
+  intros.
+  apply H;
+  assumption.
+Qed.
+
+Theorem my_ex_intro : forall (A:Set) (P:A -> Prop) (a:A), P a -> my_ex P.
+  unfold my_ex.
+  intros.
+  apply(H0 a).
+  assumption.
+Qed.
+
+Theorem my_not_ex_all :
+  forall (A:Set) (P:A -> Prop), my_not (my_ex P) -> forall a:A, my_not (P a).
+  unfold my_ex, my_not.
+  intros.
+  apply H.
+  intros.
+  apply(H1 a).
+  assumption.
+Qed.
+
+Theorem my_ex_ex : forall (A:Set) (P:A -> Prop), my_ex P -> ex P.
+  unfold my_ex.
+  intros.
+  apply H.
+  intros.
+  exists x.
+  assumption.
+Qed.
+
+Definition my_le (n p:nat) :=
+  forall P : nat -> Prop,
+    P n ->
+      (forall q : nat, P q -> P (S q)) ->
+        P p.
+
+Theorem my_le_n : forall n:nat, my_le n n.
+  unfold my_le.
+  intros.
+  assumption.
+
+Theorem my_le_S : forall n p:nat,
+                   my_le n p -> my_le n (S p).
+  unfold my_le.
+  intros.
+  apply H1.
+  apply H;
+  assumption.
+Qed.
+
+Theorem my_le_le : forall n p:nat,
+                    my_le n p -> n <= p.
+  unfold my_le.
+  intros.
+  apply H.
+  constructor.
+  intros.
+  constructor.
+  assumption.
+Qed.
