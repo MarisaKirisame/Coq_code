@@ -275,4 +275,43 @@ Goal de_morgan_not_and_not <-> implies_to_or.
     ]
   ];
   assumption.
-Qed.  
+Qed.
+
+Section on_ex. 
+  Variables 
+    (A:Type)
+    (P Q:A -> Prop).
+  Lemma ex_or : (exists x:A, P x \/ Q x) -> ex P \/ ex Q.
+    intros;
+    destruct H;
+    destruct H;
+    [left|right];
+    exists x;
+    assumption.
+  Qed.
+  
+  Lemma ex_or_R : ex P \/ ex Q -> (exists x:A, P x \/ Q x).
+    intros;
+    destruct H;
+    destruct H;
+    exists x;
+    [left|right];
+    assumption.
+  Qed.
+  
+  Lemma two_is_three : (exists x:A, forall R : A->Prop, R x) -> 2 = 3.
+    intros;
+    destruct H;
+    apply( H (fun _ => _ = 3) ).
+  Qed.
+
+  Lemma forall_no_ex : (forall x:A, P x) -> ~(exists y:A, ~ P y).
+    intros;
+    unfold not;
+    intros;
+    destruct H0;
+    apply H0;
+    apply H.
+  Qed.
+End on_ex.
+  
