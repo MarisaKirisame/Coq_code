@@ -562,3 +562,67 @@ Goal forall t, to_b_tree_Z (to_Z_btree t) = t.
   rewrite IHt2.
   reflexivity.
 Qed.
+
+Inductive htree (A:Set) : nat -> Set :=
+  hleaf : A -> (htree A O)
+| hnode : forall n:nat, A -> htree A n -> htree A n -> htree A (S n).
+
+Definition first_of_htree
+  (A : Set) (n : nat) (v : htree A n) (t : htree A (S n)) : htree A n :=
+    match t in (htree _ n0) return (htree A (pred n0) -> htree A (pred n0)) with
+    | hleaf _ => fun v' : htree A 0 => v'
+    | hnode p _ t1 _ => fun _ : htree A p => t1
+    end v.
+
+Theorem injection_first_htree:
+  forall (n : nat) (t1 t2 t3 t4 : htree nat n),
+    hnode nat n O t1 t2 = hnode nat n O t3 t4 ->  t1 = t3.
+  intros n t1 t2 t3 t4 h.
+  change
+  (first_of_htree nat n t1 (hnode nat n 0 t1 t2) =
+  first_of_htree nat n t1 (hnode nat n 0 t3 t4)).
+  rewrite h.
+  reflexivity.
+Qed.
+
+Fixpoint make_htree (n:nat): htree Z n :=
+  match n return htree Z n with
+    0 => hleaf Z 0%Z
+  | S p => hnode Z p 0%Z (make_htree p) (make_htree p)
+  end.
+
+Inductive binary_word : nat -> Set :=
+  tail : binary_word 0
+| push : forall n : nat, bool -> binary_word n -> binary_word (S n).
+
+Fixpoint word_con (nl nr : nat) (wl : binary_word nl) (wr : binary_word nr) : binary_word (nl + nr) := 
+  match wl in binary_word ln return binary_word (ln + nr) with
+  | tail => wr
+  | push l b w => push (l + nr) b (word_con l nr w wr)
+  end.
+
+Fixpoint binary_word_or (l : nat) (wl wr : binary_word l) : binary_word l.
+  refine(
+    match wl in binary_word n return binary_word n -> binary_word n with
+    | tail => (fun x => x)
+    | push ll lb lw => 
+        (fun wr' : binary_word (S ll) => match wr' with
+        | tail => (fun p : False => wr')
+        | push rl rb rw => 
+            (fun p : ll = rl => 
+              push
+              rl
+              (bool_or lb rb) 
+              (binary_word_or rl (eq_rec ll binary_word lw rl p) rw))
+        end _)
+    end wr).
+    reflexivity.
+Defined.
+
+Theorem all_equal : forall x y : Empty_set, x = y.
+  destruct x.
+Qed.
+
+Theorem all_diff : forall x y : Empty_set, x <> y.
+  destruct x.
+Qed.
