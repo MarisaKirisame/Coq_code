@@ -70,3 +70,8 @@ Lemma lt_lt_or_eq : forall n m:nat, n < S m ->  n < m \/ n = m.
   intros.
   omega. 
 Qed.
+
+Goal forall n p:nat, n <= p -> p < S n -> n = p.
+  intros.
+  omega.
+Qed.
