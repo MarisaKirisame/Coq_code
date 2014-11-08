@@ -128,8 +128,167 @@ Definition mod2 (n : nat) : { m : nat | n = (div2 n) + m }.
   repeat econstructor.
   destruct IHn.
   simpl.
-  econstructor.
+  eapply (exist _).
+  instantiate( 1 := x + 1 ).
+  omega.
+Qed.
+
+Fixpoint fib(n : nat) : nat :=
+  match n with
+  | O => 1
+  | S n' =>
+      match n' with
+      | O => 1
+      | S n'' => (fib n') + (fib n'')
+      end
+  end.
+
+Fixpoint fib_pair (n:nat) : nat * nat :=
+  match n with
+  | O => (1, 1)
+  | S p => match fib_pair p with
+           | (x, y) => (y, x + y)
+           end
+  end.
+
+Definition linear_fib (n:nat) := fst (fib_pair n).
+
+Lemma fib_pair_correct : forall n:nat, fib_pair n = (fib n, fib (S n)).
+  induction n.
+  auto.
+  simpl.
+  rewrite IHn.
   f_equal.
-  rewrite e at 1.
+  destruct n.
+  auto.
+  rewrite <- plus_assoc.
+  f_equal.
+  simpl.
+  omega.
+Qed.
+
+Goal forall n, fib n = linear_fib n.
+  unfold linear_fib.
+  intros.
+  rewrite fib_pair_correct.
   auto.
 Qed.
+
+Goal forall n, (sig_extract _ _ (div3 n)) <= n.
+  intros.
+  remember(div3 n).
+  destruct s.
+  simpl.
+  omega.
+Qed.
+
+Theorem div3_3 : (sig_extract _ _ (div3 3)) = 1.
+  unfold sig_extract.
+  remember (div3 3).
+  destruct s.
+  repeat(omega||destruct x).
+Qed.
+
+Theorem div3_S : forall n, (sig_extract _ _ (div3 (S (S (S n))))) = S (sig_extract _ _ (div3 n)).
+  intros.
+  remember(div3 (S (S (S n)))).
+  remember(div3 n).
+  destruct s.
+  destruct s0.
+  induction n using nat_3_rect;
+  simpl;
+  omega.
+Qed.
+
+Definition mod3 (n : nat) : { m : nat | n = (sig_extract _ _ (div3 n)) + m }.
+  induction n using nat_3_rect;
+  try destruct IHn;
+  repeat econstructor.
+  rewrite div3_S.
+  instantiate(1 := x + 2).
+  omega.
+Defined.
+
+Definition div2_mod2 : 
+  forall n:nat, {q:nat & {r:nat | n = 2*q + r /\ r <= 1}}.
+  intros.
+  induction n using nat_2_rect.
+  econstructor.
+  econstructor.
+  instantiate( 1 := 0 ).
+  instantiate( 1 := 0 ).
+  omega.
+  econstructor.
+  econstructor.
+  instantiate( 1 := 1 ).
+  instantiate( 1 := 0 ).
+  omega.
+  destruct IHn.
+  destruct s.
+  destruct a.
+  econstructor.
+  econstructor.
+  instantiate( 1 := x0 ).
+  instantiate( 1 := x + 1 ).
+  omega.
+Qed.
+
+Fixpoint plus' (n m:nat){struct m} : nat :=
+  match m with 
+  | O => n
+  | S p => S (plus' n p) 
+  end.
+
+Theorem plus'_O_n : forall n, plus' 0 n = n.
+  intros.
+  induction n;
+  simpl;
+  auto.
+Qed.
+
+Hint Resolve plus'_O_n.
+
+Theorem plus'_assoc : forall n m p : nat, plus' n (plus' m p) = plus' (plus' n m) p.
+  assert(forall n m, plus' (S m) n = S (plus' m n)).
+  intros.
+  induction n;
+  simpl;
+  auto.
+  intros.
+  induction m;
+  simpl;
+  auto.
+  rewrite H.
+  simpl.
+  rewrite IHm.
+  auto.
+Qed.
+
+Fixpoint plus'' (n m:nat) {struct m} : nat :=
+  match m with 0 =>  n 
+      | S p => plus'' (S n) p 
+  end.
+
+Theorem plus''_Sn_m m : forall n, plus'' (S n) m = S (plus'' n m).
+  induction m.
+  simpl;
+  auto.
+  intros.
+  apply IHm.
+Qed.
+
+Hint Resolve plus''_Sn_m plus'_assoc.
+
+Goal forall n m p : nat, plus'' n (plus'' m p) = plus'' (plus'' n m) p.
+  assert(forall n m, plus'' n m = plus' n m).
+  intros.
+  induction m.
+  auto.
+  simpl.
+  rewrite <- IHm.
+  auto.
+  intros.
+  repeat rewrite H.
+  auto.
+Qed.
+
