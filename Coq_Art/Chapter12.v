@@ -98,8 +98,6 @@ Module More_Dec_Orders (D: DEC_ORDER) : MORE_DEC_ORDERS with Definition
 
 End More_Dec_Orders.
 
-Require Import ZArith.
-
 Module List_Order (D: DEC_ORDER) <: DEC_ORDER with Definition
   A := list D.A .
   Definition A := list D.A .
@@ -110,112 +108,159 @@ Module List_Order (D: DEC_ORDER) <: DEC_ORDER with Definition
     | _, nil => False
     | el :: ll, er :: lr => (D.lt el er) \/ ((el = er)/\(lt ll lr))
     end.
-  Definition le (l r : A) : Prop := ~ (lt r l).
+  Fixpoint le (l r : A) : Prop :=
+    match l,r with
+    | nil, nil => True
+    | nil, _ => True
+    | _, nil => False
+    | el :: ll, er :: lr => (D.lt el er) \/ ((el = er)/\(le ll lr))
+    end.
+  Module M := More_Dec_Orders D.
   Lemma ordered : order A le.
     intuition.
     unfold reflexive.
     intuition.
-    unfold le.
     induction x.
-    tauto.
+    auto with *.
     simpl.
-    intuition.
-    apply IHx.
-    apply D.lt_diff in H0.
     tauto.
     unfold transitive.
     induction x.
-    destruct y,z; auto.
+    simpl.
+    destruct z; auto.
+    simpl in *.
+    destruct y.
+    tauto.
+    destruct z;auto.
     intros.
-    destruct y,z;unfold le,lt.
-    try(
-      absurd(le (a :: x) nil);
-      unfold le,lt;
-      (tauto||
-        trivial)).
-    try(
-      absurd(le (a :: x) nil);
-      unfold le,lt;
-      (tauto||
-        trivial)).
-    try(
-      absurd(le (a :: x) nil);
-      unfold le,lt;
-      (tauto||
-        trivial)).
     intuition.
-    unfold le in H.
-    simpl in H.
-    apply Decidable.not_or in H.
-    destruct H.
-    apply Decidable.not_and in H1.
-    admit.
-    admit.
-    subst.
-    assert(a=a0).
-    admit.
-    subst.
-    unfold le in *.
     simpl in *.
-    admit.
+    intuition.
+    left.
+    eapply M.lt_trans;
+    eauto.
+    subst.
+    tauto.
+    subst.
+    simpl in *.
+    intuition.
+    subst.
+    right.
+    intuition.
+    eauto.
     unfold antisymmetric.
-    unfold le.
     induction x.
-    intros.
-    unfold lt in *.
-    destruct y;tauto.
-    intros.
+    destruct y.
+    trivial.
     simpl in *.
-    induction y.
+    intuition.
+    intuition.
+    destruct y.
     simpl in *.
     tauto.
     simpl in *.
-    apply Decidable.not_or in H.
-    destruct H.
-    assert(a=a0).
-    admit.
-    apply Decidable.not_and in H1.
-    apply Decidable.not_or in H0.
-    destruct H0.
-    apply Decidable.not_and in H3.
-    destruct H1,H3;try subst;try tauto.
+    intuition.
+    apply M.lt_not_le in H1.
+    intuition.
+    elim H1.
+    apply D.lt_le_weak.
+    auto.
+    subst.
+    apply D.lt_diff in H1.
+    tauto.
+    subst.
+    apply D.lt_diff in H1.
+    tauto.
+    clear H.
+    subst.
     f_equal.
     auto.
-    admit.
-    admit.
   Qed.
 
-  Axiom lt_diff : forall a b:A, lt a b -> a <> b.
+  Lemma lt_diff : forall a b:A, lt a b -> a <> b.
+    induction a.
+    simpl in *.
+    destruct b;auto.
+    intuition.
+    assert(nil<>a::b).
+    auto with *.
+    tauto.
+    intros.
+    simpl in *.
+    destruct b;auto.
+    destruct H.
+    assert(a <> a1).
+    apply D.lt_diff in H.
+    trivial.
+    intuition.
+    apply H0.
+    injection H1.
+    trivial.
+    destruct H.
+    subst.
+    assert(a0<>b).
+    auto.
+    intuition.
+    apply H.
+    injection H1.
+    trivial.
+  Qed.
 
   Lemma lt_le_weak : forall a b:A, lt a b -> le a b.
     induction a.
     induction b.
-    unfold le,lt.
-    tauto.
+    auto with *.
+    trivial.
+    destruct b.
+    trivial.
     simpl.
-    intros.
-    unfold le,lt.
+    intuition.
+  Qed.
+
+  Lemma le_lt_or_eq : forall a b:A, le a b -> lt a b \/ a = b.
+    induction a.
+    destruct b;
     tauto.
-    intros.
-    unfold le,lt.
+    destruct b;simpl in *.
+    tauto.
+    intuition.
+    subst.
+    ecase IHa.
+    eauto.
+    tauto.
+    intuition.
+    subst.
+    tauto.
+  Qed.
+
+  Definition lt_eq_lt_dec : forall a b:A, {lt a b} + {a = b} + {lt b a}.
+    induction a.
     destruct b.
     tauto.
-    unfold not.
-    intuition.
-    admit.
+    constructor 1.
+    constructor 1.
+    simpl.
+    trivial.
+    destruct b.
     simpl in *.
-    subst.
+    constructor 2.
+    trivial.
+    simpl in *.
+    assert({D.lt a a1} + {a = a1} + {D.lt a1 a}).
+    apply D.lt_eq_lt_dec.
     destruct H.
-    apply D.lt_diff in H.
+    destruct s.
     tauto.
+    subst.
+    assert({lt a0 b} + {a0 = b} + {lt b a0}).
+    apply IHa.
     destruct H.
-    clear H.
-    fold lt in *.
-    assert(a0<>b).
-    apply lt_diff.
-    auto.
-    intuition.
-    
-  Axiom le_lt_or_eq : forall a b:A, le a b -> lt a b \/ a = b.
-  Parameter lt_eq_lt_dec : forall a b:A, {lt a b} + {a = b} + {lt b a}.
+    destruct s.
+    tauto.
+    subst.
+    tauto.
+    tauto.
+    tauto.
+  Defined.
+
 End List_Order.
