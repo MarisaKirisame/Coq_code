@@ -28,4 +28,43 @@ Theorem le_2_n_pred:
   inversion l.
 Qed.
 
+Require Import List.
+
+Inductive lfactor (A:Set) : list A -> list A -> Prop :=
+  lf1 : forall u:list A, lfactor nil u
+| lf2 : forall (a:A) (u v:list A), lfactor u v ->
+          lfactor (a :: u) (a :: v).
+
+Fixpoint rfactor (A:Set) (u v:list A) { struct u } : 
+  lfactor u v -> {w : list A | v = u ++ w}.
+  refine(
+    match u,v with
+    | nil, nil => _
+    | nil, ev :: lv => _
+    | eu :: lu, nil => _
+    | eu :: lu, ev :: lv => _
+    end);simpl in *.
+  econstructor.
+  reflexivity.
+  econstructor.
+  reflexivity.
+  intros.
+  econstructor.
+  instantiate( 1 := nil).
+  inversion H.
+  intros.
+  assert({w : list A | lv = lu ++ w}).
+  apply rfactor.
+  inversion H.
+  trivial.
+  destruct H0.
+  subst.
+  assert(eu=ev).
+  inversion H.
+  trivial.
+  subst.
+  econstructor.
+  reflexivity.
+Qed.
+  
 
