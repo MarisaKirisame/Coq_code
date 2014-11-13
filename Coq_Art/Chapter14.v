@@ -66,5 +66,61 @@ Fixpoint rfactor (A:Set) (u v:list A) { struct u } :
   econstructor.
   reflexivity.
 Qed.
-  
 
+Section update_def.
+  Variables (A : Set) (A_eq_dec : forall (x y : A),  ({ x = y }) + ({ x <> y })).
+  Variables (B : A ->  Set) (a : A) (v : B a) (f : forall (x : A),  B x).
+  Definition update (x : A) : B x :=
+    match A_eq_dec a x with
+    | left h => eq_rec a B v x h
+    | right h' => f x
+    end.
+End update_def.
+
+Require Import Eqdep.
+
+Theorem update_eq:
+ forall (A : Set) (eq_dec : forall (x y : A),  ({ x = y }) + ({ x <> y }))
+        (B : A ->  Set) (a : A) (v : B a) (f : forall (x : A),  B x),
+  update eq_dec B a v f a = v.
+  unfold update.
+  intros.
+  case (eq_dec a a).
+  intuition.
+  rewrite <- eq_rect_eq.
+  trivial.
+  tauto.
+Qed.
+
+Inductive ltree (A:Set) : Set :=
+  lnode : A -> list (ltree A)-> ltree A.
+
+Section correct_ltree_ind.
+  Variables
+    (A : Set)(P : ltree A -> Prop)(Q : list (ltree A)-> Prop).
+  Hypotheses
+    (H : forall (a:A)(l:list (ltree A)), Q l -> P (@lnode A a l))
+    (H0 : Q nil)
+    (H1 : forall t:ltree A, P t ->
+    forall l:list (ltree A), Q l -> Q (cons t l)).
+  Fixpoint ltree_ind2 (t:ltree A) : P t :=
+    match t as x return P x with
+    | lnode a l =>
+        @H
+          a
+          l
+          (((fix l_ind (l':list (ltree A)) : Q l' :=
+            match l' as x return Q x with
+            | nil => H0
+            | cons t1 tl => @H1 t1 (ltree_ind2 t1) tl (l_ind tl)
+            end)) l)
+          end.
+  Fixpoint ltree_ind3 (l : list (ltree A)) : Q l.
+    destruct l.
+    trivial.
+    apply H1.
+    apply ltree_ind2.
+    apply ltree_ind3.
+  Defined.
+End correct_ltree_ind.
+  
