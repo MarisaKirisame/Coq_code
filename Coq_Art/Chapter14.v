@@ -123,4 +123,108 @@ Section correct_ltree_ind.
     apply ltree_ind3.
   Defined.
 End correct_ltree_ind.
-  
+
+Fixpoint lcount (A : Set)(t : ltree A){ struct t } : nat :=
+  match t with
+  | lnode n l => 
+      S 
+      ((fix list_rec (l' : list (ltree A)) :=
+        match l' with
+        | nil => 0
+        | l'_head :: l'_tail => (lcount l'_head) + (list_rec l'_tail)
+        end) l)
+  end.
+
+Inductive ntree (A:Set) : Set :=
+  nnode : A -> nforest A -> ntree A
+with nforest (A:Set) : Set :=
+  nnil : nforest A | ncons : ntree A -> nforest A -> nforest A.
+
+Fixpoint ntree_to_ltree (A : Set)(t : ntree A) := 
+  match t with
+  | nnode n f => lnode n (nforest_to_lltree f)
+  end
+with nforest_to_lltree (A : Set)(n : nforest A) := 
+  match n with
+  | nnil => nil
+  | ncons t f => (ntree_to_ltree t) :: (nforest_to_lltree f)
+  end.
+
+Fixpoint ltree_to_ntree (A : Set)(t : ltree A) :=
+  match t with
+  | lnode n l => 
+      nnode
+      n
+      ((fix list_rec (l' : list (ltree A)) :=
+        match l' with
+        | nil => @nnil A
+        | l'_head :: l'_tail => ncons (ltree_to_ntree l'_head) (list_rec l'_tail)
+        end) l)
+  end.
+
+Fixpoint lltree_to_nforest (A : Set)(l : list (ltree A)) := 
+  match l with
+  | nil => @nnil A
+  | l_head :: l_tail => ncons (ltree_to_ntree l_head) (lltree_to_nforest l_tail)
+  end.
+
+Scheme ntree_ind2 :=
+  Induction for ntree Sort Prop
+with nforest_ind2 :=
+  Induction for nforest Sort Prop.
+
+Goal forall A n, ltree_to_ntree (@ntree_to_ltree A n) = n.
+  intros.
+  einduction n using ntree_ind2.
+  Focus 2.
+  instantiate( 1 :=
+    (fun n => (lltree_to_nforest (nforest_to_lltree n)) = n)).
+  intuition.
+  intuition.
+  simpl.
+  f_equal.
+  rewrite <- IHn0 at 2.
+  remember(nforest_to_lltree n0).
+  generalize l.
+  induction l0.
+  trivial.
+  simpl in *.
+  f_equal.
+  trivial.
+  intuition.
+  simpl in *.
+  f_equal.
+  trivial.
+  trivial.
+Qed.
+
+Goal forall A n, ntree_to_ltree (@ltree_to_ntree A n) = n.
+  intros.
+  einduction n using ltree_ind2.
+  Focus 2.
+  instantiate( 1 :=
+    (fun n => (nforest_to_lltree (lltree_to_nforest n)) = n)).
+  intuition.
+  intuition.
+  simpl in *.
+  f_equal.
+  generalize l.
+  einduction l0 using ltree_ind3.
+  instantiate( 1 :=
+    (fun n => (ntree_to_ltree (ltree_to_ntree n)) = n)).
+  intuition.
+  simpl in *.
+  f_equal.
+  trivial.
+  trivial.
+  intuition.
+  simpl in *.
+  f_equal.
+  trivial.
+  trivial.
+  intuition.
+  simpl in *.
+  f_equal.
+  trivial.
+  trivial.
+Qed.  
