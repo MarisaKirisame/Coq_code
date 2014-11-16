@@ -227,4 +227,4 @@ Goal forall A n, ntree_to_ltree (@ltree_to_ntree A n) = n.
   f_equal.
   trivial.
   trivial.
-Qed.  
+Qed.
