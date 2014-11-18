@@ -10,7 +10,7 @@ Require Import
   Zdiv.
 
 Theorem divisor_smaller :
-  forall m p:nat, 0 < m -> forall q:nat, m = q*p -> q <= m.
+  forall m p:nat, 0 < m -> forall q:nat, m = q * p -> q <= m.
   induction m.
   auto with *.
   induction p.
@@ -34,8 +34,6 @@ Theorem verif_divide :
   ring.
 Qed.
 
-Ltac caseEq f := generalize (refl_equal f); pattern f at -1; case f.
-
 Open Scope nat_scope.
 
 Inductive bin : Set :=
@@ -44,10 +42,10 @@ Inductive bin : Set :=
 | neutral: bin .
 
 Fixpoint flatten_aux (t fin : bin) {struct t} : bin :=
- match t with
- | node t1 t2 => flatten_aux t1 (flatten_aux t2 fin)
- | x => node x fin
- end.
+  match t with
+  | node t1 t2 => flatten_aux t1 (flatten_aux t2 fin)
+  | x => node x fin
+  end.
 
 Fixpoint flatten (t : bin) : bin :=
   match t with
@@ -56,37 +54,37 @@ Fixpoint flatten (t : bin) : bin :=
   end.
 
 Fixpoint remove_neutral1 (t : bin) : bin :=
- match t with
- | leaf n => leaf n
- | neutral => neutral
- | node neutral t' => remove_neutral1 t'
- | node t t' => node t (remove_neutral1 t')
- end.
+  match t with
+  | leaf n => leaf n
+  | neutral => neutral
+  | node neutral t' => remove_neutral1 t'
+  | node t t' => node t (remove_neutral1 t')
+  end.
 
 Fixpoint remove_neutral2 (t : bin) : bin :=
- match t with
+  match t with
   | leaf n => leaf n
   | neutral => neutral
   | node t neutral => t
   | node t1 t2 => node t1 (remove_neutral2 t2)
- end.
+  end.
 
 Definition remove_neutral (t : bin) := remove_neutral2 (remove_neutral1 t).
 
 Section assoc_eq.
 
 Variables
-   (A : Set) (f : A -> A ->  A) (zero_A : A)
-   (assoc : forall (x y z : A),  f x (f y z) = f (f x y) z)
-   (zero_left : forall (x : A),  f zero_A x = x)
-   (zero_right : forall (x : A),  f x zero_A = x).
+  (A : Set) (f : A -> A ->  A) (zero_A : A)
+  (assoc : forall (x y z : A),  f x (f y z) = f (f x y) z)
+  (zero_left : forall (x : A),  f zero_A x = x)
+  (zero_right : forall (x : A),  f x zero_A = x).
 
 Fixpoint bin_A (l : list A) (t : bin) {struct t} : A :=
- match t with
- | node t1 t2 => f (bin_A l t1) (bin_A l t2)
- | leaf n => nth n l zero_A
- | neutral => zero_A
- end.
+  match t with
+  | node t1 t2 => f (bin_A l t1) (bin_A l t2)
+  | leaf n => nth n l zero_A
+  | neutral => zero_A
+  end.
 
 Theorem flatten_aux_valid_A:
   forall (l : list A) (t t' : bin),
@@ -147,10 +145,9 @@ Theorem remove_neutral2_valid_A:
   forall (l : list A) (t : bin),  bin_A l (remove_neutral2 t) = bin_A l t.
   intros.
   elim t.
-  intros t1 IHt1 t2.
-  case t2.
+  destruct b0.
   simpl.
-  intros t2' t2'' IHt2.
+  intuition.
   f_equal.
   trivial.
   trivial.
@@ -164,24 +161,24 @@ Theorem remove_neutral_equal:
     bin_A l (remove_neutral t) = bin_A l (remove_neutral t') ->
       bin_A l t = bin_A l t'.
   unfold remove_neutral.
-  intros t t' l.
-  repeat rewrite remove_neutral2_valid_A.
-  repeat rewrite remove_neutral1_valid_A.
+  intros.
+  repeat rewrite remove_neutral2_valid_A in *.
+  repeat rewrite remove_neutral1_valid_A in *.
   trivial.
 Qed.
 
 End assoc_eq.
 
-Ltac term_list f l zero v := 
+Ltac term_list f l zero v :=
   match v with
-  | f ?X1 ?X2 => 
+  | f ?X1 ?X2 =>
       let l1 := term_list f l zero X2 in
         term_list f l1 zero X1
   | zero => l
   | ?X1 => constr:(cons X1 l)
   end.
 
-Ltac compute_rank l n v := 
+Ltac compute_rank l n v :=
   match l with
   | cons ?X1 ?X2 =>
       let tl := constr:X2 in
