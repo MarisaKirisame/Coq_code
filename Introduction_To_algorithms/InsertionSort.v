@@ -69,7 +69,7 @@ Theorem occ_Nil : forall l,(forall n, occ n l = 0) -> l = nil.
   auto.
   trivial.
 Qed.
-  
+
 Theorem occ_same : forall n l r,
   Permutation l r ->
     S (occ n l) = occ n (Insertion n r).
@@ -202,4 +202,76 @@ Theorem InsertionSortPermutation : forall l, Permutation (InsertionSort l) l.
   unfold Permutation.
   auto.
   auto.
+Qed.
+
+Inductive sorted : list nat -> Prop :=
+| sorted0 : sorted nil
+| sorted1 : forall n, sorted (n :: nil)
+| sorted2 :
+    forall n1 n2 l,
+      n1 <= n2 ->
+        sorted (n2 :: l) -> sorted (n1 :: n2 :: l).
+
+Theorem InsertionSortNil : forall l, InsertionSort l = nil -> l = nil.
+  intros.
+  destruct l.
+  trivial.
+  simpl in *.
+  remember(InsertionSort l).
+  destruct l0.
+  simpl in *.
+  inversion H.
+  simpl in *.
+  destruct (lt_dec n n0).
+  inversion H.
+  inversion H.
+Qed.
+
+Theorem SortedCons : forall e l, sorted (e :: l) -> sorted l.
+  intros.
+  induction l.
+  constructor.
+  inversion H.
+  trivial.
+Qed.
+
+Theorem InsertionSorted : forall e l, sorted l -> sorted (Insertion e l).
+  intros.
+  induction l.
+  simpl in *.
+  constructor.
+  simpl in *.
+  case(lt_dec e a).
+  intros.
+  constructor.
+  omega.
+  trivial.
+  intros.
+  inversion H.
+  subst.
+  simpl in *.
+  constructor.
+  omega.
+  constructor.
+  subst.
+  simpl in *.
+  remember(lt_dec e n2).
+  destruct s.
+  constructor.
+  omega.
+  constructor.
+  omega.
+  trivial.
+  constructor.
+  trivial.
+  tauto.
+Qed.
+
+Theorem InsertionSortSorted : forall l, sorted (InsertionSort l).
+  induction l.
+  simpl in *.
+  constructor.
+  simpl in *.
+  apply InsertionSorted.
+  trivial.
 Qed.
