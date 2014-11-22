@@ -1,6 +1,33 @@
-Require Import List Arith Recdef Setoid Relations Omega.
+Require Import List Arith Recdef Setoid Relations Omega Permutation.
 
 Set Implicit Arguments.
+
+Fixpoint occ(n : nat)(l : list nat) : nat :=
+  match l with
+  | nil => O
+  | l_head :: l_tail => (if beq_nat n l_head then 1 else 0) + (occ n l_tail)
+  end.
+
+Theorem occ_Nil : forall l,(forall n, occ n l = 0) -> l = nil.
+  induction l.
+  trivial.
+  intuition.
+  remember(H a).
+  simpl in *.
+  absurd((if beq_nat a a then 1 else 0) + occ a l = 0).
+  rewrite <- beq_nat_refl.
+  subst.
+  auto.
+  trivial.
+Qed.
+
+Inductive sorted : list nat -> Prop :=
+| sorted0 : sorted nil
+| sorted1 : forall n, sorted (n :: nil)
+| sorted2 :
+    forall n1 n2 l,
+      n1 <= n2 ->
+        sorted (n2 :: l) -> sorted (n1 :: n2 :: l).
 
 Fixpoint Insertion(n : nat)(l : list nat) := 
   match l with
@@ -39,178 +66,63 @@ Theorem InsertionSortSameLength : forall l, length (InsertionSort l) = length l.
   auto.
 Qed.
 
-Fixpoint occ(n : nat)(l : list nat) : nat :=
-  match l with
-  | nil => O
-  | l_head :: l_tail => (if beq_nat n l_head then 1 else 0) + (occ n l_tail)
-  end.
-
-Definition Permutation(l l':list nat) := 
-  forall n : nat, occ n l = occ n l'.
-
-Theorem Permutation_Equiv : Equivalence Permutation.
-  unfold Permutation.
-  intuition.
-  unfold Transitive.
-  intuition.
-  rewrite <- H0.
-  trivial.
-Qed.
-
-Theorem occ_Nil : forall l,(forall n, occ n l = 0) -> l = nil.
-  induction l.
-  trivial.
-  intuition.
-  remember(H a).
-  simpl in *.
-  absurd((if beq_nat a a then 1 else 0) + occ a l = 0).
-  rewrite <- beq_nat_refl.
-  subst.
-  auto.
-  trivial.
-Qed.
-
-Theorem occ_same : forall n l r,
-  Permutation l r ->
-    S (occ n l) = occ n (Insertion n r).
-  unfold Permutation.
-  destruct l.
-  intuition.
-  simpl in *.
-  assert(r = nil).
-  apply occ_Nil.
-  auto.
-  subst.
-  simpl in *.
-  rewrite <- beq_nat_refl.
-  trivial.
-  intuition.
-  simpl in *.
-  rewrite H.
-  clear H.
-  clear n0.
-  clear l.
-  induction r.
-  simpl in *.
-  rewrite <- beq_nat_refl.
-  trivial.
-  simpl in *.
-  remember(beq_nat n a).
-  destruct b.
-  simpl in *.
-  assert(n = a).
-  apply beq_nat_true.
-  auto.
-  remember(lt_dec n a).
-  destruct s.
-  subst.
-  omega.
-  subst.
-  simpl in *.
-  rewrite <- Heqb.
-  auto.
-  simpl.
-  remember(lt_dec n a).
-  destruct s.
-  intuition.
-  simpl in *.
-  rewrite <- beq_nat_refl.
-  simpl in *.
-  f_equal.
-  rewrite <- Heqb.
-  trivial.
-  intuition.
-  simpl in *.
-  rewrite <- Heqb.
-  trivial.
-Qed.
-
-Theorem occ_diff : forall n m l r,
-  Permutation l r ->
-    beq_nat n m = false ->
-      occ n l = occ n (Insertion m r).
-  unfold Permutation.
-  induction l.
-  intuition.
-  simpl in *.
-  assert(r = nil).
-  apply occ_Nil.
-  eauto.
-  subst.
-  simpl in *.
-  rewrite H0.
-  trivial.
-  induction r.
-  intuition.
-  assert(a :: l = nil).
-  apply occ_Nil.
-  trivial.
-  absurd(a :: l = nil).
-  auto with *.
-  trivial.
-  intuition.
-  simpl in *.
-  remember(lt_dec m a0).
-  destruct s.
-  intuition.
-  simpl in *.
-  rewrite H0.
-  eauto.
-  simpl in *.
-  assert(occ n (Insertion m r) = occ n r).
-  clear IHl.
-  clear IHr.
-  clear H.
-  clear Heqs.
-  clear n0.
-  clear a0.
-  clear l.
-  clear a.
-  induction r.
-  intuition.
-  simpl in *.
-  rewrite H0.
-  trivial.
-  simpl in *.
-  remember(lt_dec m a).
-  destruct s.
-  intuition.
-  simpl in *.
-  rewrite H0.
-  omega.
-  intuition.
-  simpl in *.
-  auto.
-  rewrite H1.
-  apply H.
-Qed.
+Theorem InsertionPermutation : forall l r n, Permutation l r -> Permutation (n :: l) (Insertion n r).
+  intros.
+Admitted.
 
 Theorem InsertionSortPermutation : forall l, Permutation (InsertionSort l) l.
-  unfold Permutation.
   induction l.
+  trivial.
   simpl in *.
-  constructor.
+  inversion IHl.
+  trivial.
+  subst.
   simpl in *.
-  intuition.
-  remember(beq_nat n a).
-  destruct b.
-  simpl in *.
-  admit.
-  simpl in *.
+  remember(lt_dec a x).
+  destruct s.
+  auto.
   symmetry.
-  apply occ_diff.
-  unfold Permutation.
-  auto.
-  auto.
+  assert(Permutation (a :: x :: l') (x :: a :: l')).
+  constructor.
+  apply (perm_trans H1).
+  constructor.
+  eapply InsertionPermutation.
+  auto with *.
+  subst.
+  simpl in *.
+  remember(lt_dec a x).
+  remember(lt_dec a y).
+  destruct s, s0.
+  constructor.
+  constructor.
+  assert(Permutation (y :: a :: x :: l0) (a :: y :: x :: l0)).
+  constructor.
+  apply (perm_trans H).
+  constructor.
+  constructor.
+  constructor.
+  constructor.
+  symmetry.
+  assert(Permutation (a :: x :: y :: l0) (y :: x :: a :: l0)).
+  assert(Permutation (a :: x :: y :: l0) (x :: a :: y :: l0)).
+  constructor.
+  apply (perm_trans H).
+  assert(Permutation (x :: a :: y :: l0) (x :: y :: a :: l0)).
+  constructor.
+  constructor.
+  apply (perm_trans H1).
+  constructor.
+  apply (perm_trans H).
+  constructor.
+  constructor.
+  eapply InsertionPermutation.
+  trivial.
+  subst.
+  symmetry.
+  eapply InsertionPermutation.
+  symmetry.
+  trivial.
 Qed.
-
-Inductive sorted : list nat -> Prop :=
-| sorted0 : sorted nil
-| sorted1 : forall n, sorted (n :: nil)
-| sorted2 :
-    forall n1 n2 l,
-      n1 <= n2 ->
-        sorted (n2 :: l) -> sorted (n1 :: n2 :: l).
 
 Theorem InsertionSortNil : forall l, InsertionSort l = nil -> l = nil.
   intros.
@@ -275,3 +187,4 @@ Theorem InsertionSortSorted : forall l, sorted (InsertionSort l).
   apply InsertionSorted.
   trivial.
 Qed.
+

@@ -116,3 +116,70 @@ Definition bool_rec (C : Type) l r b : C :=
   | false => r
   end.
 Print sum.
+
+Definition sum A B := sigT (fun b => bool_rec A B b).
+Definition prod A B := forall b, bool_rec A B b.
+
+Definition inl A B (a : A) : sum A B.
+  exists true.
+  trivial.
+Defined.
+
+Definition inr A B (b : B) : sum A B.
+  exists false.
+  trivial.
+Defined.
+
+Definition sum_ind : 
+  forall A B,
+    forall C : (sum A B) -> Type,
+      (forall a, C (inl B a)) ->
+        (forall b, C (inr A b)) ->
+          forall x, C x.
+  unfold sum, inl, inr.
+  intros.
+  destruct x.
+  destruct x.
+  trivial.
+  trivial.
+Defined.
+
+Definition mkprod A B (a : A) (b : B) : prod A B.
+  unfold prod.
+  intros.
+  destruct b0.
+  trivial.
+  trivial.
+Defined.
+
+Require Import JMeq.
+
+Definition prod_ind' : 
+  (forall (A B A' B' : Type)
+    (f : (forall A, B)) (f' : (forall A', B')) (a : A) (a' : A'),
+      JMeq a a' -> JMeq (f a) (f' a') -> JMeq f f') ->
+    forall A B,
+      forall C : (prod A B) -> Type,
+        (forall x y, C (mkprod x y)) ->
+          forall x, C x.
+  intro function_extensionality.
+  unfold mkprod, prod, bool_rec.
+  intros.
+  remember(x true) as t.
+  remember(x false) as f.
+  remember(X t f) as l.
+  assert(
+    @JMeq
+    (forall b0 : bool, if b0 then A else B)
+    (fun b0 : bool => if b0 as b return (if b then A else B) then t else f)
+    _
+    x).
+  assert(x = fun b => x b) as ass.
+  trivial.
+  rewrite ass.
+  clear ass.
+  (*eapply (function_extensionality _ _ _ _ (fun b0 : bool => if b0 as b return (if b then A else B) then t else f)).*)
+  admit.
+  rewrite <- H.
+  trivial.
+Defined.
