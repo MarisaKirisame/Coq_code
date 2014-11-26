@@ -27,7 +27,6 @@ Fixpoint fold(e : exp) : exp:=
   match e with
   | Binop b e1 e2 =>
       match fold e1, fold e2 with
-      | Var l, Var r => Binop b (Var l) (Var r)
       | Const l, Const r => (Const (binopDenote b l r))
       | _, _ => e
       end
