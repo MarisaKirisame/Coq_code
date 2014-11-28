@@ -6,15 +6,6 @@ Inductive mult n : nat -> Prop :=
 
 Definition mult_6_10 n := (mult 6 n) \/ (mult 10 n).
 
-Goal ~(mult_6_10 13).
-  unfold not.
-  intros.
-  inversion H;
-  inversion H0;
-  inversion H2;
-  inversion H4.
-Qed.
-
 Theorem mult_exists : forall n m, mult n m -> exists l, n * l = m.
   induction 1.
   eauto.
@@ -22,6 +13,15 @@ Theorem mult_exists : forall n m, mult n m -> exists l, n * l = m.
   exists (S x).
   rewrite mult_succ_r.
   subst.
+  omega.
+Qed.
+
+Goal ~(mult_6_10 13).
+  unfold not.
+  intros.
+  destruct H;
+  apply mult_exists in H;
+  destruct H;
   omega.
 Qed.
 
