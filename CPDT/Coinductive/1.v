@@ -1,4 +1,4 @@
-Require Import Bool.
+Require Import Bool Setoid.
 
 Set Implicit Arguments.
 
@@ -19,14 +19,33 @@ CoFixpoint true_false : inf_tree bool :=
   node true (node false true_false true_false) (node false true_false true_false).
 
 CoInductive eq_tree A :  inf_tree A -> inf_tree A -> Prop :=
-| teq : forall la ll lr ra rl rr, 
-  la = ra ->
+| teq : forall a ll lr rl rr, 
     eq_tree ll rl ->
       eq_tree lr rr ->
-        eq_tree (node la ll lr) (node ra rl rr).
+        eq_tree (node a ll lr) (node a rl rr).
+
+Definition frob A (s : inf_tree A) : inf_tree A :=
+  match s with
+    | node a l r => node a l r
+  end.
+
+Theorem frob_eq : forall A (s : inf_tree A), s = frob s.
+  intros.
+  destruct s.
+  trivial.
+Qed.
 
 Goal eq_tree (map true_false false_tree orb) true_false.
   cofix.
-Admitted.
+  rewrite (frob_eq true_false).
+  rewrite (frob_eq true_false).
+  rewrite (frob_eq (map (frob (frob true_false)) false_tree orb)).
+  simpl in *.
+  constructor;
+  rewrite (frob_eq (map (node false true_false true_false) false_tree orb));
+  simpl in *;
+  split;
+  trivial.
+Qed.
 
 
