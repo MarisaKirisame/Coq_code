@@ -1,4 +1,6 @@
-Require Import Bool List.
+Require Import Bool List Arith.
+
+Set Implicit Arguments.
 
 Definition var := nat.
 
@@ -10,7 +12,7 @@ Definition disjunction := list literal.
 
 Definition CNF := list disjunction.
 
-Definition literal_bool_denote truth l : bool :=
+Definition literal_bool_denote truth l :=
   match l with
   | positive v => truth v
   | negative v => negb (truth v)
@@ -18,7 +20,7 @@ Definition literal_bool_denote truth l : bool :=
 
 Fixpoint disjunction_bool_denote truth d : bool :=
   match d with
-  | nil => true
+  | nil => false
   | d_head :: d_tail => 
       orb
         (literal_bool_denote truth d_head)
@@ -34,26 +36,128 @@ Fixpoint CNF_bool_denote truth f : bool :=
         (CNF_bool_denote truth f_tail)
   end.
 
-Lemma band_true_split : forall a b, a && b = true -> a = true /\ b = true.
+Definition literal_assign (b : bool) (v : var) (l : literal) : literal + bool :=
+  match l with
+  | positive l' =>
+      match eq_nat_dec l' v with
+      | left _ => inr b
+      | _ => inl l
+      end
+  | negative l' => 
+      match eq_nat_dec l' v with
+      | left _ => inr (negb b)
+      | _ => inl l
+      end
+  end.
+
+Fixpoint disjunction_assign
+  (b : bool) (v : var) (l : disjunction) : disjunction + bool :=
+  match l with
+  | nil => inr false
+  | l_head :: l_tail =>
+      match literal_assign b v l_head, disjunction_assign b v l_tail with
+      | inr true, _ => inr true
+      | inr false, l => l
+      | _, inr true => inr true
+      | inl l, inr false => inl (l :: nil)
+      | inl l, inl r => inl (l :: r)
+      end
+  end.
+
+Fixpoint CNF_assign
+  (b : bool) (v : var) (l : CNF) : CNF + bool :=
+  match l with
+  | nil => inr true
+  | l_head :: l_tail =>
+      match disjunction_assign b v l_head, CNF_assign b v l_tail with
+      | inr true, l => l
+      | inr false, _ => inr false
+      | _, inr false => inr false
+      | inl l, inr true => inl (l :: nil)
+      | inl l, inl r => inl (l :: r)
+      end
+  end.
+
+Theorem literal_assign_preserve : forall v truth f, 
+  literal_bool_denote truth f = 
+    match literal_assign (truth v) v f with
+    | inl f' => literal_bool_denote truth f'
+    | inr b => b
+    end.
+  intros.
+  destruct f;
+  remember (eq_nat_dec v0 v);
+  destruct s;
+  subst;
+  simpl in *;
+  try rewrite <- Heqs;
+  trivial.
+Qed.
+
+Theorem disjunction_assign_preserve : forall v truth f, 
+  disjunction_bool_denote truth f = 
+    match disjunction_assign (truth v) v f with
+    | inl f' => disjunction_bool_denote truth f'
+    | inr b => b
+    end.
+  induction f;
+  trivial;
+  simpl in *;
+  rewrite IHf.
+  rewrite (literal_assign_preserve v).
+  remember (disjunction_assign (truth v) v f) as s;
+  remember (literal_assign (truth v) v a) as s0;
+  destruct s, s0;
+  trivial;
+  destruct b;
+  auto with *;
+  destruct b0;
+  trivial.
+Qed.
+
+Theorem CNF_assign_preserve : forall v truth f, 
+  CNF_bool_denote truth f = 
+    match CNF_assign (truth v) v f with
+    | inl f' => CNF_bool_denote truth f'
+    | inr b => b
+    end.
+  induction f;
+  trivial.
+  simpl in *.
+  rewrite IHf.
+  rewrite (disjunction_assign_preserve v).
+  remember (CNF_assign (truth v) v f) as s;
+  remember (disjunction_assign (truth v) v a) as s0;
+  destruct s, s0;
+  simpl in *;
+  trivial.
+  destruct b;
+  trivial.
+  subst;
+  remember (CNF_bool_denote truth f) as s;
+  destruct s;
+  trivial;
+  ring.
+  destruct b0;
+  trivial.
+Qed.
+
+Lemma band_true_split : forall a b, a && b = true <-> a = true /\ b = true.
   auto with *.
 Defined.
 
-Lemma band_false_split : forall a b, a && b = false -> a = false \/ b = false.
+Lemma band_false_split : forall a b, a && b = false <-> a = false \/ b = false.
   destruct a, b;
   tauto.
 Defined.
 
-Definition DPLL : 
-  forall f : CNF , 
-    { truth | CNF_bool_denote truth f = true } + 
-      { forall truth, CNF_bool_denote truth f = false }.
-  intros.
-  induction f.
-  apply inleft;
-  exists (fun _ => true);
-  trivial.
-  inversion_clear IHf.
-  inversion_clear H.
-  admit.
-  admit.
-Defined.
+Fixpoint CNF_total_length (f : CNF) :=
+  match f with
+  | nil => 0
+  | f_head :: f_tail => length f_head + CNF_total_length f_tail
+  end.
+
+Fixpoint DPLL(f : CNF) :
+  { truth | CNF_bool_denote truth f = true } + 
+    { forall truth, CNF_bool_denote truth f = false }.
+Admitted.
