@@ -8,6 +8,12 @@ Inductive literal :=
 | positive : forall v : var, literal
 | negative : forall v : var, literal.
 
+Definition get_var (l : literal) : var :=
+  match l with
+  | positive v => v
+  | negative v => v
+  end.
+
 Definition disjunction := list literal.
 
 Definition CNF := list disjunction.
@@ -157,7 +163,67 @@ Fixpoint CNF_total_length (f : CNF) :=
   | f_head :: f_tail => length f_head + CNF_total_length f_tail
   end.
 
-Fixpoint DPLL(f : CNF) :
-  { truth | CNF_bool_denote truth f = true } + 
-    { forall truth, CNF_bool_denote truth f = false }.
+Definition sat truth f := CNF_bool_denote truth f = true.
+
+Definition sat_raw t (r : CNF + bool) :=
+  match r with
+  | inl f => sat t f
+  | inr b => b = true
+  end.
+
+Inductive literal_has : literal -> var -> Prop :=
+| has_positive : forall v, literal_has (positive v) v
+| has_negative : forall v, literal_has (negative v) v.
+
+Inductive disjunction_has : disjunction -> var -> Prop :=
+| disjunction_has_refl : 
+    forall l v, literal_has l v -> disjunction_has (l :: nil) v
+| disjunction_has_cons : 
+    forall l v c, 
+      disjunction_has l v -> 
+        disjunction_has (c :: l) v.
+
+Inductive CNF_has
+
+Function CNF_bool_and_rect
+  (P : CNF + bool -> Type)
+    (t : P (inr true))
+      (f : P (inr false))
+        (ta : forall v cnf, P (CNF_assign true v cnf))
+        (fa : forall v cnf, P (CNF_assign false v cnf))
+        (F : False)
+          (l : CNF + bool) :
+            P l :=
+  (fun tr =>
+    match tr return P tr with
+    | inr true => t
+    | inr false => f
+    | inl y => False_rect (P (inl y)) F
+    end) l.
+
+Definition DPLL_raw (f : CNF + bool) : 
+  { t | sat_raw t f } +  { forall t, ~sat_raw t f }.
+  unfold sat_raw.
+  unfold sat.
+  destruct f.
+  destruct c.
+  clear DPLL_raw;
+  simpl in *;
+  left;
+  exists (fun _ => true);
+  trivial.
+  destruct d.
+  clear DPLL_raw;
+  auto with *.
+  remember (get_var l) as v.
+  remember (DPLL_raw (CNF_assign true v c)) as r1.
+  remember (DPLL_raw (CNF_assign false v c)) as r2.
+  destruct r1, r2.
+  destruct s.
+  destruct s0.
+  simpl in *.
+  
+Defined.
 Admitted.
+
+Definition DPLL (f : CNF) := DPLL_raw (inl f).
