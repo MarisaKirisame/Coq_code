@@ -1,4 +1,4 @@
-Require Import Bool List Arith.
+Require Import Bool List Arith Omega.
 
 Set Implicit Arguments.
 
@@ -157,17 +157,39 @@ Lemma band_false_split : forall a b, a && b = false <-> a = false \/ b = false.
   tauto.
 Defined.
 
+Fixpoint literal_total_length (l : literal) := 1.
+
+Definition disjunction_total_length := @length literal.
+
 Fixpoint CNF_total_length (f : CNF) :=
   match f with
   | nil => 0
-  | f_head :: f_tail => length f_head + CNF_total_length f_tail
+  | f_head :: f_tail => disjunction_total_length f_head + CNF_total_length f_tail
   end.
 
-Definition sat truth f := CNF_bool_denote truth f = true.
+Definition literal_bool_total_length (l : literal + bool) :=
+  match l with
+  | inl l => literal_total_length l
+  | _ => 0
+  end.
 
-Definition sat_raw t (r : CNF + bool) :=
+Definition disjunction_bool_total_length (c : disjunction + bool) :=
+  match c with
+  | inl f => disjunction_total_length f
+  | _ => 0
+  end.
+
+Definition CNF_bool_total_length (c : CNF + bool) :=
+  match c with
+  | inl f => CNF_total_length f
+  | _ => 0
+  end.
+
+Definition CNF_sat truth f := CNF_bool_denote truth f = true.
+
+Definition CNF_bool_sat t (r : CNF + bool) :=
   match r with
-  | inl f => sat t f
+  | inl f => CNF_sat t f
   | inr b => b = true
   end.
 
@@ -176,14 +198,20 @@ Inductive literal_has : literal -> var -> Prop :=
 | has_negative : forall v, literal_has (negative v) v.
 
 Inductive disjunction_has : disjunction -> var -> Prop :=
-| disjunction_has_refl : 
-    forall l v, literal_has l v -> disjunction_has (l :: nil) v
+| disjunction_has_fst : 
+    forall l v n, literal_has l v -> disjunction_has (l :: n) v
 | disjunction_has_cons : 
     forall l v c, 
       disjunction_has l v -> 
         disjunction_has (c :: l) v.
 
-Inductive CNF_has
+Inductive CNF_has : CNF -> var -> Prop :=
+| CNF_has_fst : 
+    forall l v n, disjunction_has l v -> CNF_has (l :: n) v
+| CNF_has_cons : 
+    forall l v c, 
+      CNF_has l v -> 
+        CNF_has (c :: l) v.
 
 Function CNF_bool_and_rect
   (P : CNF + bool -> Type)
@@ -201,29 +229,38 @@ Function CNF_bool_and_rect
     | inl y => False_rect (P (inl y)) F
     end) l.
 
-Definition DPLL_raw (f : CNF + bool) : 
-  { t | sat_raw t f } +  { forall t, ~sat_raw t f }.
-  unfold sat_raw.
-  unfold sat.
-  destruct f.
-  destruct c.
-  clear DPLL_raw;
+Goal forall b l v, 
+  literal_has l v -> 
+    literal_bool_total_length (literal_assign b v l) < literal_total_length l.
+  intros;
+  inversion H;
+  subst;
   simpl in *;
-  left;
-  exists (fun _ => true);
-  trivial.
-  destruct d.
-  clear DPLL_raw;
-  auto with *.
-  remember (get_var l) as v.
-  remember (DPLL_raw (CNF_assign true v c)) as r1.
-  remember (DPLL_raw (CNF_assign false v c)) as r2.
-  destruct r1, r2.
-  destruct s.
-  destruct s0.
+  case eq_nat_dec;
+  auto;
+  tauto.
+Qed.
+
+Goal forall b l v,
+  disjunction_has l v ->
+    disjunction_bool_total_length (disjunction_assign b v l) < 
+    disjunction_total_length l.
+  intros.
+  induction l.
+  inversion H.
   simpl in *.
-  
-Defined.
+  remember (literal_assign b v a).
+  destruct s.
+  remember (disjunction_assign b v l).
+  destruct s.
+  simpl in *.
+  assert((disjunction_total_length d) < (disjunction_total_length l)).
+  apply IHl.
+  inversion H.
+  subst.
+  omega.
+Definition CNF_bool_DPLL (f : CNF + bool) : 
+  { t | CNF_bool_sat t f } +  { forall t, CNF_bool_sat t f }.
 Admitted.
 
-Definition DPLL (f : CNF) := DPLL_raw (inl f).
+Definition DPLL (f : CNF) := CNF_bool_DPLL (inl f).
