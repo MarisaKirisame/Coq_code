@@ -241,6 +241,28 @@ Goal forall b l v,
   tauto.
 Qed.
 
+Theorem disjunction_assign_le : forall b v l,
+  disjunction_bool_total_length (disjunction_assign b v l) <
+    S (disjunction_total_length l).
+  induction l.
+  auto.
+  simpl in *.
+  unfold literal_assign.
+  destruct a;
+  remember (eq_nat_dec v0 v);
+  destruct s;
+  subst;
+  try(
+    destruct b;
+    auto with *;
+    fail);
+  remember (disjunction_assign b v l);
+  destruct s;
+  auto with *;
+  destruct b0;
+  auto with *.
+Qed.
+
 Goal forall b l v,
   disjunction_has l v ->
     disjunction_bool_total_length (disjunction_assign b v l) < 
@@ -248,17 +270,61 @@ Goal forall b l v,
   intros.
   induction l.
   inversion H.
+  inversion H;
   simpl in *.
+  subst.
   remember (literal_assign b v a).
   destruct s.
-  remember (disjunction_assign b v l).
-  destruct s.
+  inversion H3;
+  subst;
+  simpl in *;
+  remember (eq_nat_dec v v);
+  destruct s;
+  try discriminate;
+  omega.
+  inversion H3;
+  subst;
+  destruct b0;
+  auto with *;
+  apply disjunction_assign_le.
+  subst.
+  remember (literal_assign b v a).
+  destruct s;
+  remember (disjunction_assign b v l);
+  destruct s;
+  simpl in *;
+  try destruct b0;
+  auto with *.
   simpl in *.
-  assert((disjunction_total_length d) < (disjunction_total_length l)).
-  apply IHl.
+  destruct l;
+  auto with *.
+Qed.
+
+Goal forall b l v,
+  CNF_has l v ->
+    CNF_bool_total_length (CNF_assign b v l) < 
+    CNF_total_length l.
+  intros.
+  induction l;
   inversion H.
   subst.
-  omega.
+  simpl in *.
+  remember (disjunction_assign b v a).
+  destruct s.
+  remember (CNF_assign b v l).
+  destruct s;
+  simpl in *.
+  admit.
+  destruct b0;
+  simpl in *.
+  admit.
+  admit.
+  destruct b0;
+  simpl in *.
+  admit.
+  admit.
+  subst.
+  simpl in *.
 Definition CNF_bool_DPLL (f : CNF + bool) : 
   { t | CNF_bool_sat t f } +  { forall t, CNF_bool_sat t f }.
 Admitted.
