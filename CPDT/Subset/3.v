@@ -229,7 +229,7 @@ Function CNF_bool_and_rect
     | inl y => False_rect (P (inl y)) F
     end) l.
 
-Goal forall b l v, 
+Theorem literal_assign_lt : forall b l v, 
   literal_has l v -> 
     literal_bool_total_length (literal_assign b v l) < literal_total_length l.
   intros;
@@ -242,89 +242,166 @@ Goal forall b l v,
 Qed.
 
 Theorem disjunction_assign_le : forall b v l,
-  disjunction_bool_total_length (disjunction_assign b v l) <
-    S (disjunction_total_length l).
-  induction l.
+  disjunction_bool_total_length (disjunction_assign b v l) <=
+    (disjunction_total_length l).
+  induction l;
   auto.
-  simpl in *.
-  unfold literal_assign.
-  destruct a;
-  remember (eq_nat_dec v0 v);
+  simpl in *;
+  remember (literal_assign b v a);
   destruct s;
-  subst;
-  try(
-    destruct b;
-    auto with *;
-    fail);
-  remember (disjunction_assign b v l);
+  try remember (disjunction_assign b v l) as s;
   destruct s;
-  auto with *;
+  simpl in *;
+  try omega;
   destruct b0;
+  simpl in *;
   auto with *.
 Qed.
 
-Goal forall b l v,
+Theorem literal_has_eq : forall a b, literal_has a b <-> get_var a = b.
+  intros.
+  split;
+  intros.
+  inversion H;
+  trivial.
+  subst.
+  destruct a;
+  constructor.
+Qed.
+
+Theorem iff_not : forall a b : Prop, (a <-> b) -> (~a <-> ~b).
+  tauto.
+Qed.
+
+Theorem literal_assign_inl : 
+  forall v b c d, literal_assign b v c = inl d -> get_var c <> v.
+  destruct c;
+  simpl in *;
+  remember (eq_nat_dec v0 v);
+  destruct s;
+  trivial;
+  discriminate.
+Qed.
+
+Theorem disjunction_assign_lt : forall b l v,
   disjunction_has l v ->
     disjunction_bool_total_length (disjunction_assign b v l) < 
     disjunction_total_length l.
   intros.
   induction l.
   inversion H.
-  inversion H;
   simpl in *.
-  subst.
   remember (literal_assign b v a).
   destruct s.
-  inversion H3;
-  subst;
-  simpl in *;
-  remember (eq_nat_dec v v);
-  destruct s;
-  try discriminate;
-  omega.
-  inversion H3;
-  subst;
-  destruct b0;
-  auto with *;
-  apply disjunction_assign_le.
+  remember (disjunction_assign b v l).
+  destruct s.
+  simpl in *.
+  assert ((disjunction_total_length d) < (disjunction_total_length l)).
+  apply IHl.
+  symmetry in Heqs.
+  apply literal_assign_inl in Heqs.
+  apply (iff_not (literal_has_eq a v)) in Heqs.
+  inversion H.
   subst.
-  remember (literal_assign b v a).
-  destruct s;
-  remember (disjunction_assign b v l);
-  destruct s;
-  simpl in *;
-  try destruct b0;
+  tauto.
+  trivial.
+  omega.
+  destruct b0.
   auto with *.
   simpl in *.
-  destruct l;
+  assert (0 < disjunction_total_length l).
+  symmetry in Heqs.
+  apply literal_assign_inl in Heqs.
+  apply (iff_not (literal_has_eq a v)) in Heqs.
+  inversion H.
+  subst.
+  tauto.
+  subst.
+  tauto.
+  omega.
+  destruct b0.
+  auto with *.
+  assert
+    (disjunction_bool_total_length (disjunction_assign b v l) <=
+      (disjunction_total_length l)).
+  apply disjunction_assign_le.
+  omega.
+Qed.
+
+Theorem CNF_assign_le : forall b l v,
+  CNF_bool_total_length (CNF_assign b v l) <= CNF_total_length l.
+  intros.
+  induction l;
+  trivial.
+  simpl in *.
+  remember(disjunction_assign b v a) as s;
+  destruct s.
+  assert(disjunction_bool_total_length (inl d) <= disjunction_total_length a).
+  rewrite Heqs.
+  apply disjunction_assign_le.
+  remember(CNF_assign b v l) as s;
+  destruct s;
+  simpl in *.
+  omega.
+  destruct b0;
+  simpl in *;
+  omega.
+  destruct b0;
   auto with *.
 Qed.
 
-Goal forall b l v,
+Theorem CNF_assign_lt : forall b l v,
   CNF_has l v ->
     CNF_bool_total_length (CNF_assign b v l) < 
     CNF_total_length l.
   intros.
-  induction l;
+  induction l.
   inversion H.
-  subst.
   simpl in *.
   remember (disjunction_assign b v a).
   destruct s.
   remember (CNF_assign b v l).
-  destruct s;
+  destruct s.
   simpl in *.
-  admit.
-  destruct b0;
-  simpl in *.
-  admit.
-  admit.
-  destruct b0;
-  simpl in *.
-  admit.
-  admit.
+  inversion H.
   subst.
+  assert(disjunction_total_length d < disjunction_total_length a).
+  admit.
+  assert(CNF_total_length c <= CNF_total_length l).
+  admit.
+  omega.
+  subst.
+  assert (disjunction_total_length d <= disjunction_total_length a).
+  admit.
+  assert(CNF_total_length c < CNF_total_length l).
+  admit.
+  omega.
+  inversion H.
+  subst.
+  assert(disjunction_total_length d < disjunction_total_length a).
+  admit.
+  destruct b0;
+  simpl in *;
+  omega.
+  subst.
+  assert(0 < CNF_total_length l).
+  admit.
+  destruct b0;
   simpl in *.
+  assert(disjunction_total_length d <= disjunction_total_length a).
+  admit.
+  omega.
+  omega.
+  assert(0 < disjunction_total_length a).
+  admit.
+  destruct b0.
+  assert(CNF_bool_total_length (CNF_assign b v l) <= CNF_total_length l).
+  admit.
+  omega.
+  simpl in *.
+  omega.
+Qed.
+
 Definition CNF_bool_DPLL (f : CNF + bool) : 
   { t | CNF_bool_sat t f } +  { forall t, CNF_bool_sat t f }.
 Admitted.
