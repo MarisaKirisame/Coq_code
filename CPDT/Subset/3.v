@@ -1,4 +1,4 @@
-Require Import Bool List Arith Omega.
+Require Import Bool List Arith Omega Recdef.
 
 Set Implicit Arguments.
 
@@ -18,28 +18,28 @@ Definition disjunction := list literal.
 
 Definition CNF := list disjunction.
 
-Definition literal_bool_denote truth l :=
+Definition literal_denote truth l :=
   match l with
   | positive v => truth v
   | negative v => negb (truth v)
   end.
 
-Fixpoint disjunction_bool_denote truth d : bool :=
+Fixpoint disjunction_denote truth d : bool :=
   match d with
   | nil => false
   | d_head :: d_tail => 
       orb
-        (literal_bool_denote truth d_head)
-        (disjunction_bool_denote truth d_tail)
+        (literal_denote truth d_head)
+        (disjunction_denote truth d_tail)
   end.
 
-Fixpoint CNF_bool_denote truth f : bool :=
+Fixpoint cnf_denote truth f : bool :=
   match f with
   | nil => true
   | f_head :: f_tail =>
       andb 
-        (disjunction_bool_denote truth f_head)
-        (CNF_bool_denote truth f_tail)
+        (disjunction_denote truth f_head)
+        (cnf_denote truth f_tail)
   end.
 
 Definition literal_assign (b : bool) (v : var) (l : literal) : literal + bool :=
@@ -85,9 +85,9 @@ Fixpoint CNF_assign
   end.
 
 Theorem literal_assign_preserve : forall v truth f, 
-  literal_bool_denote truth f = 
+  literal_denote truth f = 
     match literal_assign (truth v) v f with
-    | inl f' => literal_bool_denote truth f'
+    | inl f' => literal_denote truth f'
     | inr b => b
     end.
   intros.
@@ -101,9 +101,9 @@ Theorem literal_assign_preserve : forall v truth f,
 Qed.
 
 Theorem disjunction_assign_preserve : forall v truth f, 
-  disjunction_bool_denote truth f = 
+  disjunction_denote truth f = 
     match disjunction_assign (truth v) v f with
-    | inl f' => disjunction_bool_denote truth f'
+    | inl f' => disjunction_denote truth f'
     | inr b => b
     end.
   induction f;
@@ -122,9 +122,9 @@ Theorem disjunction_assign_preserve : forall v truth f,
 Qed.
 
 Theorem CNF_assign_preserve : forall v truth f, 
-  CNF_bool_denote truth f = 
+  cnf_denote truth f = 
     match CNF_assign (truth v) v f with
-    | inl f' => CNF_bool_denote truth f'
+    | inl f' => cnf_denote truth f'
     | inr b => b
     end.
   induction f;
@@ -140,7 +140,7 @@ Theorem CNF_assign_preserve : forall v truth f,
   destruct b;
   trivial.
   subst;
-  remember (CNF_bool_denote truth f) as s;
+  remember (cnf_denote truth f) as s;
   destruct s;
   trivial;
   ring.
@@ -185,7 +185,7 @@ Definition CNF_bool_total_length (c : CNF + bool) :=
   | _ => 0
   end.
 
-Definition CNF_sat truth f := CNF_bool_denote truth f = true.
+Definition CNF_sat truth f := cnf_denote truth f = true.
 
 Definition CNF_bool_sat t (r : CNF + bool) :=
   match r with
@@ -212,22 +212,6 @@ Inductive CNF_has : CNF -> var -> Prop :=
     forall l v c, 
       CNF_has l v -> 
         CNF_has (c :: l) v.
-
-Function CNF_bool_and_rect
-  (P : CNF + bool -> Type)
-    (t : P (inr true))
-      (f : P (inr false))
-        (ta : forall v cnf, P (CNF_assign true v cnf))
-        (fa : forall v cnf, P (CNF_assign false v cnf))
-        (F : False)
-          (l : CNF + bool) :
-            P l :=
-  (fun tr =>
-    match tr return P tr with
-    | inr true => t
-    | inr false => f
-    | inl y => False_rect (P (inl y)) F
-    end) l.
 
 Theorem literal_assign_lt : forall b l v, 
   literal_has l v -> 
@@ -275,6 +259,16 @@ Qed.
 
 Theorem literal_assign_inl : 
   forall v b c d, literal_assign b v c = inl d -> get_var c <> v.
+  destruct c;
+  simpl in *;
+  remember (eq_nat_dec v0 v);
+  destruct s;
+  trivial;
+  discriminate.
+Qed.
+
+Theorem literal_assign_inr : 
+  forall v b c d, literal_assign b v c = inr d -> get_var c = v.
   destruct c;
   simpl in *;
   remember (eq_nat_dec v0 v);
@@ -365,45 +359,270 @@ Theorem CNF_assign_lt : forall b l v,
   simpl in *.
   inversion H.
   subst.
-  assert(disjunction_total_length d < disjunction_total_length a).
-  admit.
-  assert(CNF_total_length c <= CNF_total_length l).
-  admit.
+  assert(disjunction_bool_total_length (inl d) < disjunction_total_length a).
+  rewrite Heqs.
+  apply disjunction_assign_lt.
+  trivial.
+  assert(CNF_bool_total_length (inl c) <= CNF_total_length l).
+  rewrite Heqs0.
+  apply CNF_assign_le.
+  simpl in *.
   omega.
   subst.
-  assert (disjunction_total_length d <= disjunction_total_length a).
-  admit.
+  assert (disjunction_bool_total_length (inl d) <= disjunction_total_length a).
+  rewrite Heqs.
+  apply disjunction_assign_le.
   assert(CNF_total_length c < CNF_total_length l).
-  admit.
+  tauto.
+  simpl in *.
   omega.
   inversion H.
   subst.
-  assert(disjunction_total_length d < disjunction_total_length a).
-  admit.
+  assert(disjunction_bool_total_length (inl d) < disjunction_total_length a).
+  rewrite Heqs.
+  apply disjunction_assign_lt.
+  trivial.
   destruct b0;
   simpl in *;
   omega.
   subst.
-  assert(0 < CNF_total_length l).
-  admit.
+  assert(CNF_bool_total_length (inr b0) < CNF_total_length l).
+  tauto.
   destruct b0;
   simpl in *.
-  assert(disjunction_total_length d <= disjunction_total_length a).
-  admit.
-  omega.
-  omega.
-  assert(0 < disjunction_total_length a).
-  admit.
-  destruct b0.
-  assert(CNF_bool_total_length (CNF_assign b v l) <= CNF_total_length l).
-  admit.
-  omega.
+  assert(disjunction_bool_total_length (inl d) <= disjunction_total_length a).
+  rewrite Heqs.
+  apply disjunction_assign_le.
   simpl in *.
+  omega.
+  omega.
+  destruct a.
+  simpl in *.
+  inversion Heqs.
+  subst.
+  simpl in *.
+  inversion H;
+  subst.
+  inversion H3.
+  assert (CNF_bool_total_length (CNF_assign b v l) < CNF_total_length l).
+  tauto.
+  omega.
+  destruct b0;
+  simpl in *.
+  assert(CNF_bool_total_length (CNF_assign b v l) <= CNF_total_length l).
+  apply CNF_assign_le.
+  omega.
   omega.
 Qed.
 
+Definition first_var (c : CNF) : 
+  { v : var | CNF_has c v } + { CNF_total_length c = 0 }.
+  induction c.
+  tauto.
+  destruct IHc.
+  destruct s.
+  left.
+  exists x.
+  apply CNF_has_cons.
+  trivial.
+  destruct a.
+  right.
+  trivial.
+  left.
+  exists (get_var l).
+  constructor.
+  constructor.
+  destruct l;
+  simpl in *;
+  constructor.
+Qed.
+
+Function CNF_bool_and_rect
+  (P : CNF + bool -> Type)
+    (t : P (inr true))
+      (f : P (inr false))
+        (a0 : forall cnf, CNF_total_length cnf = 0 -> P (inl cnf))
+          (PC : forall v cnf, 
+            CNF_has cnf v -> 
+              P (CNF_assign true v cnf) -> 
+                P (CNF_assign false v cnf) -> P
+                  (inl cnf))
+                    (l : CNF + bool) { measure CNF_bool_total_length l } :
+            P l :=
+  (fun tr =>
+    match tr return P tr with
+    | inr true => t
+    | inr false => f
+    | inl y => 
+      match first_var y with
+      | inleft (exist l p) => 
+          PC
+            l
+              y
+                p
+                  (CNF_bool_and_rect P t f a0 PC (CNF_assign true l y))
+                    (CNF_bool_and_rect P t f a0 PC (CNF_assign false l y))
+      | inright p => a0 y p
+      end
+    end) l.
+  intros.
+  subst.
+  simpl in *.
+  apply CNF_assign_lt.
+  trivial.
+  intros.
+  subst.
+  simpl in *.
+  apply CNF_assign_lt.
+  trivial.
+Defined.
+
+Definition CNF_bool_and_rec (a : CNF + bool -> Set) b c d e f : a f
+  := CNF_bool_and_rect a b c d e f.
+
+Definition reverse_assign b x v cnf : 
+  CNF_bool_sat x (CNF_assign b v cnf) ->
+    {t : var -> bool | cnf_denote t cnf = true}.
+  intros.
+  exists (fun v0 => 
+    match eq_nat_dec v0 v with
+    | left _ => b
+    | right _ => x v0
+    end).
+  induction cnf.
+  trivial.
+  simpl in *.
+  assert(
+    disjunction_denote
+      (fun v0 : nat => if eq_nat_dec v0 v then b else x v0)
+      a =
+    true).
+  induction a.
+  trivial.
+  simpl in *.
+  unfold CNF_sat in *;
+  destruct a;
+  simpl in *;
+  remember(eq_nat_dec v0 v) as s;
+  destruct s;
+  subst;
+  simpl in *;
+  remember (disjunction_assign b v a0) as s;
+  destruct s;
+  remember (CNF_assign b v cnf) as s;
+  destruct s;
+  simpl in *;
+  destruct b;
+  trivial;
+  simpl in *;
+  unfold CNF_sat in *;
+  simpl in *;
+  try tauto;
+  remember (x v0) as xv;
+  destruct xv;
+  trivial;
+  simpl in *;
+  try tauto;
+  destruct b0;
+  unfold CNF_bool_sat in *;
+  simpl in *;
+  try inversion H;
+  try rewrite H;
+  subst;
+  simpl in *;
+  try rewrite <- Heqxv in *;  
+  simpl in *;
+  try remember (disjunction_denote x d) as s;
+  try destruct s;
+  try discriminate;
+  simpl in *;
+  try remember (cnf_denote x c) as s;
+  try destruct s;
+  try discriminate;
+  apply IHa;
+  trivial;
+  simpl in *;
+  unfold CNF_sat in *;
+  simpl in *;
+  auto with *;
+  destruct b1;
+  simpl in *;
+  try rewrite <- Heqxv in *;
+  trivial.
+  rewrite H0.
+  simpl in *;
+  remember(disjunction_assign b v a).
+  destruct s.
+  remember(CNF_assign b v cnf).
+  destruct s.
+  simpl in *.
+  inversion H.
+  rewrite H2.
+  apply IHcnf.
+  unfold CNF_sat.
+  destruct (disjunction_denote x d).
+  trivial.
+  discriminate.
+  simpl in *.
+  destruct b0.
+  tauto.
+  discriminate.
+  destruct b0.
+  tauto.
+  discriminate.
+Defined.
+
 Definition CNF_bool_DPLL (f : CNF + bool) : 
-  { t | CNF_bool_sat t f } +  { forall t, CNF_bool_sat t f }.
-Admitted.
+  { t | CNF_bool_sat t f } +  { forall t, ~CNF_bool_sat t f }.
+  refine(
+    CNF_bool_and_rec
+      (fun x =>
+        {t : var -> bool | CNF_bool_sat t x} +
+          {(forall t : var -> bool, ~CNF_bool_sat t x)} )
+      _
+      _
+      _
+      _
+      f);
+  simpl in *;
+  intros.
+  left.
+  split.
+  intros.
+  constructor.
+  trivial.
+  auto with *.
+  induction cnf.
+  simpl in *.
+  left.
+  exists (fun _ => true).
+  constructor.
+  destruct a.
+  auto with *.
+  discriminate.
+  unfold CNF_sat.
+  destruct H0.
+  destruct s.
+  left.
+  eapply reverse_assign.
+  eauto.
+  destruct H1.
+  destruct s.
+  left.
+  eapply reverse_assign.
+  eauto.
+  right.
+  intros.
+  unfold CNF_bool_sat in *.
+  unfold CNF_sat in *.
+  rewrite (CNF_assign_preserve v).
+  destruct (t v);
+  remember(n t);
+  remember(n0 t);
+  remember(CNF_assign true v cnf) as s;
+  remember(CNF_assign false v cnf) as s0;
+  destruct s, s0;
+  trivial.
+Defined.
 
 Definition DPLL (f : CNF) := CNF_bool_DPLL (inl f).
