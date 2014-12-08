@@ -435,7 +435,7 @@ Definition first_var (c : CNF) :
   destruct l;
   simpl in *;
   constructor.
-Qed.
+Defined.
 
 Function CNF_bool_and_rect
   (P : CNF + bool -> Type)
@@ -578,7 +578,7 @@ Definition CNF_bool_DPLL (f : CNF + bool) :
     CNF_bool_and_rec
       (fun x =>
         {t : var -> bool | CNF_bool_sat t x} +
-          {(forall t : var -> bool, ~CNF_bool_sat t x)} )
+          {(forall t : var -> bool, ~CNF_bool_sat t x)})
       _
       _
       _
