@@ -171,23 +171,10 @@ Function nat_to_bnat b { measure id b } :=
   omega.
 Defined.
 
-Goal forall n, n <> 0 -> NPeano.modulo n 2 = 0 -> 
-  nat_to_bnat n = BEven (nat_to_bnat(NPeano.div n 2)).
+Goal forall b, bnat_to_nat (BInc b) = S (bnat_to_nat b).
   intros.
-  unfold nat_to_bnat.
-  unfold nat_to_bnat_terminate.
-  simpl in *.
-  remember(NPeano.divmod n 1 0 1).
-  destruct p.
-  simpl in *.
-  destruct n1.
-  discriminate.
-  unfold id.
-  admit.
+  induction b;
+  trivial;
+  simpl in *;
+  omega.
 Qed.
-
-Goal forall n, bnat_to_nat (nat_to_bnat n) = n.
-  admit.
-
-Goal forall b, (bnat_to_nat b) <> O -> nat_to_bnat (bnat_to_nat b) = b.
-  admit.
