@@ -178,3 +178,20 @@ Goal forall b, bnat_to_nat (BInc b) = S (bnat_to_nat b).
   simpl in *;
   omega.
 Qed.
+
+Fixpoint evenb (n:nat) : bool :=
+  match n with
+  | O => true
+  | S O => false
+  | S (S n') => evenb n'
+  end.
+
+Fixpoint ble_nat (n m : nat) : bool :=
+  match n with
+  | O => true
+  | S n' =>
+      match m with
+      | O => false
+      | S m' => ble_nat n' m'
+      end
+  end.
