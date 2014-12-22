@@ -202,15 +202,124 @@ Goal forall n, bnat_to_nat (nat_to_bnat n) = n.
   apply BInc_correct.
 Qed.
 
+Theorem Normalize_correct : forall b,
+  bnat_to_nat (Normalize b) = bnat_to_nat b.
+  induction b.
+  trivial.
+  simpl in *.
+  replace
+    (bnat_to_nat b + (bnat_to_nat b + 0)) with
+    (bnat_to_nat b + bnat_to_nat b).
+  remember(Normalize b).
+  destruct b0;
+  simpl in *;
+  omega.
+  auto.
+  simpl in *.
+  auto.
+Qed.
+
+Theorem Normalize_BOdd_Greater :
+  forall b b', Normalize b = BOdd b' -> bnat_to_nat b > 0.
+  induction b;
+  intros.
+  discriminate.
+  simpl in *.
+  destruct(Normalize b).
+  discriminate.
+  discriminate.
+  discriminate.
+  simpl in *.
+  omega.
+Qed.
+
+Theorem Normalize_BEven_Greater :
+  forall b b', Normalize b = BEven b' -> bnat_to_nat b > 0.
+  induction b;
+  try discriminate.
+  intros.
+  simpl in *.
+  remember(Normalize b).
+  destruct b0.
+  admit.
+  inversion H.
+  subst.
+  assert(bnat_to_nat b > 0).
+  eauto.
+  omega.
+  inversion H.
+  subst.
+  assert(bnat_to_nat b > 0).
+  eapply Normalize_BOdd_Greater.
+  eauto.
+  omega.
+Qed.
+
 Goal forall b, nat_to_bnat (bnat_to_nat b) = Normalize b.
   intros.
   induction b;
   trivial;
   simpl in *;
   try rewrite plus_0_r in *.
-  remember(bnat_to_nat b).
-  admit.
-  admit.
+  remember(Normalize b).
+  destruct b0.
+  induction b;
+  trivial;
+  simpl in *.
+  remember(Normalize b).
+  destruct b0.
+  rewrite <- Normalize_correct.
+  rewrite <- Heqb1.
+  trivial.
+  discriminate.
+  discriminate.
+  discriminate.
+  remember(@Normalize_BEven_Greater b b0).
+  clear Heqg.
+  remember (bnat_to_nat b).
+  destruct n.
+  discriminate.
+  simpl in *.
+  rewrite plus_comm.
+  simpl in *.
+  rewrite <- IHb.
+  clear Heqn.
+  clear IHb.
+  clear g.
+  induction n.
+  trivial.
+  simpl in *.
+  rewrite plus_comm.
+  simpl in *.
+  rewrite IHn.
+  trivial.
+  remember(Normalize b).
+  destruct b1.
+  discriminate.
+  discriminate.
+  inversion Heqb0.
+  subst.
+  rewrite <- IHb.
+  destruct(bnat_to_nat b).
+  discriminate.
+  clear IHb.
+  induction n.
+  trivial.
+  simpl in *.
+  rewrite plus_comm in *.
+  simpl in *.
+  rewrite IHn.
+  trivial.
+  rewrite <- IHb.
+  clear IHb.
+  induction(bnat_to_nat b).
+  trivial.
+  simpl in *.
+  replace (n + S n + 1) with (S n + n + 1).
+  simpl in *.
+  rewrite IHn.
+  trivial.
+  omega.
 Qed.
 
 Fixpoint evenb (n:nat) : bool :=
