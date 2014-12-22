@@ -1,5 +1,7 @@
 Require Import Arith Recdef Omega.
 
+Set Implicit Arguments.
+
 Definition nandb (b1:bool) (b2:bool) : bool := negb (andb b1 b2).
 
 Example test_nandb1: (nandb true false) = true.
@@ -128,6 +130,12 @@ Fixpoint BInc b :=
   | BOdd b' => BEven (BInc b')
   end.
 
+Fixpoint BPlus b n :=
+  match n with
+  | O => b
+  | S m => BInc (BPlus b m)
+  end.
+
 Fixpoint bnat_to_nat b :=
   match b with
   | BZero => O
@@ -135,48 +143,74 @@ Fixpoint bnat_to_nat b :=
   | BOdd b' => 2 * (bnat_to_nat b') + 1
   end.
 
-Function nat_to_bnat b { measure id b } :=
+Fixpoint nat_to_bnat b :=
   match b with
   | O => BZero
-  | _ => 
-    match NPeano.modulo b 2 with
-    | O => BEven (nat_to_bnat(NPeano.div b 2))
-    | _ => BOdd (nat_to_bnat(NPeano.div b 2))
+  | S n => BInc (nat_to_bnat n)
+  end.
+
+Theorem BInc_correct : forall b, bnat_to_nat (BInc b) = S (bnat_to_nat b).
+  intros.
+  induction b;
+  simpl in *;
+  omega.
+Qed.
+
+Fixpoint Normalize b :=
+  match b with
+  | BZero => BZero
+  | BOdd n => BOdd (Normalize n)
+  | BEven n => 
+    match Normalize n with
+    | BZero => BZero
+    | m => BEven m
     end
   end.
-  intros.
-  unfold id.
-  subst.
-  remember(NPeano.div_mod (S n) 2).
-  assert(S n = 2 * NPeano.div (S n) 2 + NPeano.modulo (S n) 2).
-  apply e.
-  discriminate.
-  rewrite H at 2.
-  destruct n.
-  discriminate.
-  subst.
-  omega.
-  intros.
-  subst.
-  unfold id.
-  remember(NPeano.div_mod (S n) 2).
-  assert(S n = 2 * NPeano.div (S n) 2 + NPeano.modulo (S n) 2).
-  apply e.
-  discriminate.
-  rewrite H at 2.
-  destruct n.
-  subst.
-  auto.
-  subst.
-  omega.
-Defined.
 
-Goal forall b, bnat_to_nat (BInc b) = S (bnat_to_nat b).
+Theorem BPlus_correct :
+  forall b m, bnat_to_nat (BPlus b m) = (bnat_to_nat b) + m.
+  intros.
+  induction m;
+  simpl in *.
+  trivial.
+  rewrite BInc_correct.
+  omega.
+Qed.
+
+Theorem eq_BPlus : forall n, nat_to_bnat n = BPlus BZero n.
+  induction n.
+  trivial.
+  simpl in *.
+  f_equal.
+  trivial.
+Qed.
+
+Goal forall n, bnat_to_nat (nat_to_bnat n) = n.
+  induction n.
+  trivial.
+  simpl in *.
+  remember(nat_to_bnat n).
+  destruct b;
+  subst;
+  simpl in *.
+  trivial.
+  omega.
+  repeat rewrite plus_0_r in *.
+  replace(bnat_to_nat (BInc b)) with (S (bnat_to_nat b)).
+  omega.
+  symmetry.
+  apply BInc_correct.
+Qed.
+
+Goal forall b, nat_to_bnat (bnat_to_nat b) = Normalize b.
   intros.
   induction b;
   trivial;
   simpl in *;
-  omega.
+  try rewrite plus_0_r in *.
+  remember(bnat_to_nat b).
+  admit.
+  admit.
 Qed.
 
 Fixpoint evenb (n:nat) : bool :=

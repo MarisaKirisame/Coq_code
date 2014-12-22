@@ -1,4 +1,5 @@
 Require Import Omega.
+
 Load Basics.
 
 Theorem andb_true_elim2 : forall b c : bool,
@@ -228,17 +229,3 @@ Theorem plus_swap' : forall n m p : nat,
   rewrite plus_assoc.
   trivial.
 Qed.
-
-Exercise: 5 stars, advanced (binary_inverse)
-This exercise is a continuation of the previous exercise about binary numbers. You will need your definitions and theorems from the previous exercise to complete this one.
-(a) First, write a function to convert natural numbers to binary numbers.
-Then prove that starting with any natural number, converting to binary,
-then converting back yields the same natural number you started with.
-(b) You might naturally think that we should also prove the opposite direction:
-that starting with a binary number, converting to a natural,
-and then back to binary yields the same number we started with.
-However, it is not true! Explain what the problem is.
-(c) Define a function normalize from binary numbers to binary numbers
-such that for any binary number b, converting to a natural and
-then back to binary yields (normalize b). Prove it.
-Again, feel free to change your earlier definitions if this helps here.
