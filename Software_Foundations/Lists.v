@@ -45,7 +45,8 @@ Fixpoint alternate (l1 l2 : list nat) : list nat :=
 Fixpoint count (v:nat) (s:list nat) : nat :=
   length
     (filter 
-    (fun n => match eq_nat_dec v n with left _ => true | _ => false end) s).
+      (fun n => match eq_nat_dec v n with left _ => true | _ => false end)
+      s).
 
 Definition member (v:nat) (s:list nat) : bool := 
   match count v s with
@@ -66,32 +67,56 @@ Fixpoint remove_one (v:nat)(s:list nat) : list nat :=
     end
   end.
 
-Fixpoint subset (s1:bag) (s2:bag) : bool :=
-  (* FILL IN HERE *) admit.
+Fixpoint subset (s1 s2:list nat) : bool :=
+  match s1 with
+  | nil => true
+  | s1_head :: s1_tail => 
+    andb (member s1_head s2) (subset s1_tail (remove_one s1_head s2))
+  end.
 
-Example test_subset1: subset [1;2] [2;1;4;1] = true.
- (* FILL IN HERE *) Admitted.
-Example test_subset2: subset [1;2;2] [2;1;4;1] = false.
- (* FILL IN HERE *) Admitted.
-☐
-Exercise: 3 stars (bag_theorem)
-Write down an interesting theorem about bags involving the functions count and add, and prove it. Note that, since this problem is somewhat open-ended, it's possible that you may come up with a theorem which is true, but whose proof requires techniques you haven't learned yet. Feel free to ask for help if you get stuck! 
+Theorem filter_nil_nil : forall a n, filter n nil = @nil a.
+  trivial.
+Qed.
 
+Goal forall n l1 l2, count n l1 + count n l2 = count n (l1 ++ l2).
+  induction l1.
+  intros.
+  simpl in *.
+  replace (count n nil) with 0.
+  trivial.
+  clear l2.
+  destruct n;
+  trivial.
+  intros.
+  unfold count in *.
+  simpl in *.
+  remember n as n';
+  destruct n';
+  rewrite Heqn' in *;
+  simpl in *;
+  remember (eq_nat_dec n a) as s;
+  destruct s;
+  repeat subst;
+  simpl in *;
+  auto.
+Qed.
 
-Exercise: 3 stars (list_exercises)
-More practice with lists.
+Theorem app_nil_end : forall l : list nat,
+  l ++ nil = l.
+  induction l.
+  trivial.
+  simpl.
+  f_equal.
+  trivial.
+Qed.
 
-Theorem app_nil_end : ∀l : natlist,
-  l ++ [] = l.
-Proof.
-  (* FILL IN HERE *) Admitted.
-
-Theorem rev_involutive : ∀l : natlist,
+Theorem rev_involutive : forall l : list nat,
   rev (rev l) = l.
-Proof.
-  (* FILL IN HERE *) Admitted.
-
-There is a short solution to the next exercise. If you find yourself getting tangled up, step back and try to look for a simpler way.
+  intros.
+  induction l.
+  trivial.
+  simpl in *.
+  compute.
 
 Theorem app_assoc4 : ∀l1 l2 l3 l4 : natlist,
   l1 ++ (l2 ++ (l3 ++ l4)) = ((l1 ++ l2) ++ l3) ++ l4.
