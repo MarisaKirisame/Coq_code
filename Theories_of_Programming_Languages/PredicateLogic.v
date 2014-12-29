@@ -1,4 +1,4 @@
-Require Import ZArith Omega.
+Require Import ZArith Omega FSets.
 
 Set Implicit Arguments.
 
@@ -74,4 +74,23 @@ Open Scope Z_scope.
       auto with *.
     Qed.
   End Pred.
+
+  Fixpoint IFreeVar i :=
+    match i with
+    | IConst _ => nil
+    | IVar v => v :: nil
+    | IBinop _ l r => (IFreeVar l) ++ (IFreeVar r)
+    | INegative i' => IFreeVar i'
+    end.
+
+  Fixpoint AFreeVar (a : assert):=
+    match a with
+    | AConst _ => nil
+    | ACmp _ l r => (IFreeVar l) ++ (IFreeVar r)
+    | ABinop _ l r => (AFreeVar l) ++ (AFreeVar r)
+    | AInverse a' => AFreeVar a'
+    | AForall v a'
+    | AExists v a' => filter(fun n => negb(beq_nat n v))(AFreeVar a')
+    end.
+
 Close Scope Z_scope.

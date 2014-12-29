@@ -180,10 +180,11 @@ Lemma nonzeros_app : forall l1 l2,
   nonzeros (l1 ++ l2) = (nonzeros l1) ++ (nonzeros l2).
   induction l1.
   trivial.
+  destruct a.
   intros.
   simpl in *.
-  destruct a.
   trivial.
+  intros.
   simpl in *.
   f_equal.
   trivial.
