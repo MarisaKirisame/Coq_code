@@ -235,25 +235,46 @@ Goal forall t l, @rev t l = l -> pal l.
   auto.
 Qed.
 
-A list is a subsequence of another list if all of the elements in the first list
-occur in the same order in the second list, possibly with some extra elements in between.
-For example,
-    [1,2,3]
-is a subsequence of each of the lists
-    [1,2,3]
-    [1,1,1,2,2,3]
-    [1,2,7,3]
-    [5,6,1,9,9,2,7,3,8]
-but it is not a subsequence of any of the lists
-    [1,2]
-    [1,3]
-    [5,6,2,1,7,3,8]
+Goal forall t l, pal l -> @rev t l = l.
+  induction 1.
+  trivial.
+  trivial.
+  simpl in *.
+  rewrite rev_unit.
+  simpl in *.
+  f_equal.
+  f_equal.
+  trivial.
+Qed.
 
-Define an inductive proposition subseq on list nat that captures what it means
-to be a subsequence. (Hint: You'll need three cases.)
-Prove that subsequence is reflexive, that is, any list is a subsequence of itself.
-Prove that for any lists l1, l2, and l3, if l1 is a subsequence of l2, 
-then l1 is also a subsequence of l2 ++ l3.
+Inductive sub { T } : list T -> list T -> Prop :=
+| sub_nil : sub [] []
+| sub_skip : forall l r e, sub l r -> sub l (e :: r)
+| sub_con : forall l r e, sub l r -> sub (e :: l) (e :: r).
+
+Goal forall T l, @sub T l l.
+  induction l.
+  constructor.
+  apply sub_con.
+  trivial.
+Qed.
+
+Goal forall T l1 l2 l3, @sub T l1 l2 -> sub l1 (l2 ++ l3).
+  induction 1.
+  simpl in *.
+  induction l3.
+  constructor.
+  constructor.
+  trivial.
+  simpl in *.
+  constructor.
+  trivial.
+  apply sub_con.
+  trivial.
+Qed.
+
+Goal forall T l1 l2 l3, @sub T l1 l2 -> sub l2 l3 -> sub l1 l3.
+  
 (Optional, harder) Prove that subsequence is transitive — that is, 
 if l1 is a subsequence of l2 and l2 is a subsequence of l3, then l1 is a subsequence of l3.
 Hint: choose your induction carefully!
