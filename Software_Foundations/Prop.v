@@ -273,357 +273,282 @@ Goal forall T l1 l2 l3, @sub T l1 l2 -> sub l1 (l2 ++ l3).
   trivial.
 Qed.
 
+Theorem sub_l_nil : forall T l, @sub T [] l.
+  induction l.
+  constructor.
+  constructor.
+  trivial.
+Qed.
+
 Goal forall T l1 l2 l3, @sub T l1 l2 -> sub l2 l3 -> sub l1 l3.
-  
-(Optional, harder) Prove that subsequence is transitive — that is, 
-if l1 is a subsequence of l2 and l2 is a subsequence of l3, then l1 is a subsequence of l3.
-Hint: choose your induction carefully!
+  induction l1.
+  intros.
+  apply sub_l_nil.
+  induction l2.
+  inversion 1.
+  induction l3.
+  inversion 2.
+  intros.
+  inversion H0;
+  subst;
+  intuition.
+  induction H2.
+  constructor.
+  constructor.
+  intuition.
+  constructor.
+  constructor.
+  trivial.
+  constructor.
+  apply sub_con.
+  trivial.
+  inversion H.
+  subst.
+  constructor.
+  auto.
+  subst.
+  apply sub_con.
+  eauto.
+Qed.
 
+Inductive R : nat -> list nat -> Prop :=
+| c1 : R 0 []
+| c2 : forall n l, R n l -> R (S n) (n :: l)
+| c3 : forall n l, R (S n) l -> R n l.
 
-Exercise: 2 stars, optional (R_provability)
-Suppose we give Coq the following definition:
-    Inductive R : nat → list nat → Prop :=
-      | c1 : R 0 []
-      | c2 : ∀n l, R n l → R (S n) (n :: l)
-      | c3 : ∀n l, R (S n) l → R n l.
-Which of the following propositions are provable?
+Goal R 2 [1;0].
+  repeat constructor.
+Qed.
 
-    R 2 [1,0]
-    R 1 [1,2,1,0]
-    R 6 [3,2,1,0]
+Goal R 1 [1;2;1;0].
+  repeat constructor.
+Qed.
 
-☐
+Inductive total : nat -> nat -> Prop := total_all : forall n m, total n m.
+Inductive empty : nat -> nat -> Prop :=.
 
-Relations
-A proposition parameterized by a number (such as ev or beautiful) can be thought of as
- a property — i.e., it defines a subset of nat, namely those numbers for which the proposition
- is provable. In the same way, a two-argument proposition can be thought of as a relation
- — i.e., it defines a set of pairs for which the proposition is provable.
+Goal forall m n o, m <= n -> n <= o -> m <= o.
+  induction m;
+  induction n;
+  induction o;
+  intros;
+  trivial;
+  inversion H0;
+  subst;
+  trivial;
+  auto.
+Qed.
 
+Goal forall n, 0 <= n.
+  induction n.
+  trivial.
+  auto.
+Qed.
 
-One useful example is the "less than or equal to" relation on numbers.
-The following definition should be fairly intuitive. It says that there are two ways
- to give evidence that one number is less than or equal to another: either observe that
- they are the same number, or give evidence that the first is less than or equal to
- the predecessor of the second.
+Goal forall n m, n <= m -> S n <= S m.
+  intros.
+  induction H.
+  trivial.
+  auto.
+Qed.
 
-Inductive le : nat → nat → Prop :=
-  | le_n : ∀n, le n n
-  | le_S : ∀n m, (le n m) → (le n (S m)).
+Goal forall n m, S n <= S m -> n <= m.
+  induction n.
+  intros.
+  clear H.
+  induction m.
+  trivial.
+  auto.
+  induction m.
+  intros.
+  inversion H;
+  subst.
+  inversion H1.
+  intros.
+  inversion H.
+  trivial.
+  subst.
+  inversion H1;
+  subst;
+  auto.
+Qed.
 
-Notation "m ≤ n" := (le m n).
+Goal forall a b, a <= a + b.
+  induction a.
+  intros.
+  simpl in *.
+  induction b.
+  trivial.
+  auto.
+  intros.
+  replace (S a + b) with (S b + a).
+  apply le_n_S.
+  rewrite plus_comm.
+  trivial.
+  ring.
+Qed.
 
-Proofs of facts about ≤ using the constructors le_n and le_S follow the same patterns as 
-proofs about properties, like ev in chapter Prop. We can apply the constructors 
-to prove ≤ goals (e.g., to show that 3≤3 or 3≤6), and we can use tactics like inversion 
-to extract information from ≤ hypotheses in the context (e.g., to prove that (2 ≤ 1) → 2+2=5.)
-Here are some sanity checks on the definition.
-(Notice that, although these are the same kind of simple "unit tests"
-as we gave for the testing functions we wrote in the first few lectures, 
-we must construct their proofs explicitly — simpl and reflexivity don't do the job,
-because the proofs aren't just a matter of simplifying computations.)
+Goal forall n1 n2 m, n1 + n2 < m -> n1 < m /\ n2 < m.
+  induction n1.
+  intros.
+  simpl in *.
+  split;
+  trivial.
+  destruct m.
+  inversion H.
+  clear n2 H.
+  induction m;
+  auto.
+  induction n2.
+  intros.
+  rewrite plus_comm in H.
+  simpl in *.
+  split.
+  trivial.
+  destruct m.
+  inversion H.
+  clear n1 IHn1 H.
+  induction m;
+  auto.
+  induction m.
+  intros.
+  simpl in *.
+  inversion H.
+  intros.
+  simpl in *.
+  split.
+  apply IHn2.
+  rewrite plus_comm in *.
+  apply lt_S_n.
+  simpl in *.
+  auto.
+  apply IHn1.
+  apply lt_S_n.
+  auto.
+Qed.
 
-Theorem test_le1 :
-  3 ≤ 3.
-Proof.
-  (* WORKED IN CLASS *)
-  apply le_n. Qed.
+Goal forall n m, n < m -> n < S m.
+  induction n;
+  induction m;
+  intros;
+  auto.
+Qed.
 
-Theorem test_le2 :
-  3 ≤ 6.
-Proof.
-  (* WORKED IN CLASS *)
-  apply le_S. apply le_S. apply le_S. apply le_n. Qed.
+Goal forall n m, leb n m = true -> n <= m.
+  induction n;
+  induction m.
+  trivial.
+  intros.
+  simpl in *.
+  auto.
+  discriminate.
+  intros.
+  simpl in *.
+  auto with *.
+Qed.
 
-Theorem test_le3 :
-  (2 ≤ 1) → 2 + 2 = 5.
-Proof.
-  (* WORKED IN CLASS *)
-  intros H. inversion H. inversion H2. Qed.
+Goal forall n m, n <= m -> leb n m = true.
+  induction n;
+  induction m;
+  trivial.
+  inversion 1.
+  intros.
+  simpl in *.
+  destruct m;
+  auto with *.
+Qed.
 
-The "strictly less than" relation n < m can now be defined in terms of le.
+Goal forall n m o,
+  leb n m = true -> leb m o = true -> leb n o = true.
+  intros.
+  apply leb_complete in H.
+  apply leb_complete in H0.
+  apply leb_correct.
+  eapply le_trans with m;
+  trivial.
+Qed.
 
-Definition lt (n m:nat) := le (S n) m.
+Goal forall n m, leb n m = false -> ~(n <= m).
+  induction n;
+  induction m;
+  intros;
+  simpl in *;
+  try discriminate;
+  intuition.
+  destruct m;
+  eauto with *.
+Qed.
 
-Notation "m < n" := (lt m n).
-
-Here are a few more simple relations on numbers:
-
-Inductive square_of : nat → nat → Prop :=
-  sq : ∀n:nat, square_of n (n × n).
-
-Inductive next_nat (n:nat) : nat → Prop :=
-  | nn : next_nat n (S n).
-
-Inductive next_even (n:nat) : nat → Prop :=
-  | ne_1 : ev (S n) → next_even n (S n)
-  | ne_2 : ev (S (S n)) → next_even n (S (S n)).
-
-Exercise: 2 stars (total_relation)
-Define an inductive binary relation total_relation that holds between 
-every pair of natural numbers.
-
-(* FILL IN HERE *)
-☐
-Exercise: 2 stars (empty_relation)
-Define an inductive binary relation empty_relation (on numbers) that never holds.
-
-(* FILL IN HERE *)
-☐
-Exercise: 2 stars, optional (le_exercises)
-Here are a number of facts about the ≤ and < relations 
-that we are going to need later in the course. The proofs make good practice exercises.
-
-Lemma le_trans : ∀m n o, m ≤ n → n ≤ o → m ≤ o.
-Proof.
-  (* FILL IN HERE *) Admitted.
-
-Theorem O_le_n : ∀n,
-  0 ≤ n.
-Proof.
-  (* FILL IN HERE *) Admitted.
-
-Theorem n_le_m__Sn_le_Sm : ∀n m,
-  n ≤ m → S n ≤ S m.
-Proof.
-  (* FILL IN HERE *) Admitted.
-
-Theorem Sn_le_Sm__n_le_m : ∀n m,
-  S n ≤ S m → n ≤ m.
-Proof.
-  (* FILL IN HERE *) Admitted.
-
-Theorem le_plus_l : ∀a b,
-  a ≤ a + b.
-Proof.
-  (* FILL IN HERE *) Admitted.
-
-Theorem plus_lt : ∀n1 n2 m,
-  n1 + n2 < m →
-  n1 < m ∧ n2 < m.
-Proof.
- unfold lt.
- (* FILL IN HERE *) Admitted.
-
-Theorem lt_S : ∀n m,
-  n < m →
-  n < S m.
-Proof.
-  (* FILL IN HERE *) Admitted.
-
-Theorem ble_nat_true : ∀n m,
-  ble_nat n m = true → n ≤ m.
-Proof.
-  (* FILL IN HERE *) Admitted.
-
-Theorem le_ble_nat : ∀n m,
-  n ≤ m →
-  ble_nat n m = true.
-Proof.
-  (* Hint: This may be easiest to prove by induction on m. *)
-  (* FILL IN HERE *) Admitted.
-
-Theorem ble_nat_true_trans : ∀n m o,
-  ble_nat n m = true → ble_nat m o = true → ble_nat n o = true.
-Proof.
-  (* Hint: This theorem can be easily proved without using induction. *)
-  (* FILL IN HERE *) Admitted.
-
-Exercise: 2 stars, optional (ble_nat_false)
-Theorem ble_nat_false : ∀n m,
-  ble_nat n m = false → ~(n ≤ m).
-Proof.
-  (* FILL IN HERE *) Admitted.
-☐
-Exercise: 3 stars (R_provability2)
 Module R.
-We can define three-place relations, four-place relations, etc.,
- in just the same way as binary relations.
- For example, consider the following three-place relation on numbers:
 
-Inductive R : nat → nat → nat → Prop :=
-   | c1 : R 0 0 0
-   | c2 : ∀m n o, R m n o → R (S m) n (S o)
-   | c3 : ∀m n o, R m n o → R m (S n) (S o)
-   | c4 : ∀m n o, R (S m) (S n) (S (S o)) → R m n o
-   | c5 : ∀m n o, R m n o → R n m o.
+  Inductive R : nat -> nat -> nat -> Prop :=
+  | c1 : R 0 0 0
+  | c2 : forall m n o, R m n o -> R (S m) n (S o)
+  | c3 : forall m n o, R m n o -> R m (S n) (S o)
+  | c4 : forall m n o, R (S m) (S n) (S (S o)) -> R m n o
+  | c5 : forall m n o, R m n o -> R n m o.
 
-    Which of the following propositions are provable?
-        R 1 1 2
-        R 2 2 6
-    If we dropped constructor c5 from the definition of R, would the set of provable
- propositions change? Briefly (1 sentence) explain your answer.
-    If we dropped constructor c4 from the definition of R, would the set of provable
- propositions change? Briefly (1 sentence) explain your answer.
+  Goal R 1 1 2.
+    constructor.
+    constructor.
+    constructor.
+  Qed.
 
-(* FILL IN HERE *)
-☐
-Exercise: 3 stars, optional (R_fact)
-Relation R actually encodes a familiar function. State and prove two theorems that formally
- connects the relation and the function. That is, if R m n o is true, 
-what can we say about m, n, and o, and vice versa?
-
-(* FILL IN HERE *)
-☐
+  Goal forall x y z, R x y z -> x + y = z.
+    induction 1;
+    subst;
+    trivial;
+    try ring;
+    omega.
+  Qed.
 
 End R.
 
-Programming with Propositions Revisited
-As we have seen, a proposition is a statement expressing a factual claim, like
- "two plus two equals four." In Coq, propositions are written as expressions of type Prop. .
-
-Check (2 + 2 = 4).
-(* ===> 2 + 2 = 4 : Prop *)
-
-Check (ble_nat 3 2 = false).
-(* ===> ble_nat 3 2 = false : Prop *)
-
-Check (beautiful 8).
-(* ===> beautiful 8 : Prop *)
-
-Both provable and unprovable claims are perfectly good propositions. 
-Simply being a proposition is one thing; being provable is something else!
-
-Check (2 + 2 = 5).
-(* ===> 2 + 2 = 5 : Prop *)
-
-Check (beautiful 4).
-(* ===> beautiful 4 : Prop *)
-
-Both 2 + 2 = 4 and 2 + 2 = 5 are legal expressions of type Prop.
-We've mainly seen one place that propositions can appear in Coq: in Theorem
-(and Lemma and Example) declarations.
-
-Theorem plus_2_2_is_4 :
-  2 + 2 = 4.
-Proof. reflexivity. Qed.
-
-But they can be used in many other ways. For example, we have also seen that we can 
-give a name to a proposition using a Definition, 
-just as we have given names to expressions of other sorts.
-
-Definition plus_fact : Prop := 2 + 2 = 4.
-Check plus_fact.
-(* ===> plus_fact : Prop *)
-
-We can later use this name in any situation where a proposition is expected — 
-for example, as the claim in a Theorem declaration.
-
-Theorem plus_fact_is_true :
-  plus_fact.
-Proof. reflexivity. Qed.
-
-We've seen several ways of constructing propositions.
-
-    We can define a new proposition primitively using Inductive.
-    Given two expressions e1 and e2 of the same type, we can form the proposition e1 = e2, 
-which states that their values are equal.
-    We can combine propositions using implication and quantification.
-
-We have also seen parameterized propositions, such as even and beautiful.
-
-Check (even 4).
-(* ===> even 4 : Prop *)
-Check (even 3).
-(* ===> even 3 : Prop *)
-Check even.
-(* ===> even : nat -> Prop *)
-
-The type of even, i.e., nat→Prop, can be pronounced in three equivalent ways: (1)
- "even is a function from numbers to propositions," (2) "even is a family of propositions,
- indexed by a number n," or (3) "even is a property of numbers."
-Propositions — including parameterized propositions — are first-class citizens in Coq.
- For example, we can define functions from numbers to propositions...
-
-Definition between (n m o: nat) : Prop :=
-  andb (ble_nat n o) (ble_nat o m) = true.
-
-... and then partially apply them:
-
-Definition teen : nat→Prop := between 13 19.
-
-We can even pass propositions — including parameterized propositions — 
-as arguments to functions:
-
-Definition true_for_zero (P:nat→Prop) : Prop :=
-  P 0.
-
-Here are two more examples of passing parameterized propositions as arguments to a function.
-The first function, true_for_all_numbers, takes a proposition P as argument and
- builds the proposition that P is true for all natural numbers.
-
-Definition true_for_all_numbers (P:nat→Prop) : Prop :=
-  ∀n, P n.
-
-The second, preserved_by_S, takes P and builds the proposition that, 
-if P is true for some natural number n', then it is also true by the successor of n' —
- i.e. that P is preserved by successor:
-
-Definition preserved_by_S (P:nat→Prop) : Prop :=
-  ∀n', P n' → P (S n').
-
-Finally, we can put these ingredients together to define a proposition stating that
- induction is valid for natural numbers:
-
-Definition natural_number_induction_valid : Prop :=
-  ∀(P:nat→Prop),
-    true_for_zero P →
-    preserved_by_S P →
-    true_for_all_numbers P.
-
-Exercise: 3 stars (combine_odd_even)
-Complete the definition of the combine_odd_even function below. It takes as arguments
- two properties of numbers Podd and Peven. As its result, it should return a new property P
- such that P n is equivalent to Podd n when n is odd, and equivalent to Peven n otherwise.
-
-Definition combine_odd_even (Podd Peven : nat → Prop) : nat → Prop :=
-  (* FILL IN HERE *) admit.
-
-To test your definition, see whether you can prove the following facts:
+Definition combine_odd_even (Podd Peven : nat -> Prop) n : Prop :=
+  if NPeano.even n then Peven n else Podd n.
 
 Theorem combine_odd_even_intro :
-  ∀(Podd Peven : nat → Prop) (n : nat),
-    (oddb n = true → Podd n) →
-    (oddb n = false → Peven n) →
-    combine_odd_even Podd Peven n.
-Proof.
-  (* FILL IN HERE *) Admitted.
+  forall (Podd Peven : nat -> Prop) (n : nat),
+    (NPeano.even n = false -> Podd n) ->
+      (NPeano.even n = true -> Peven n) ->
+        combine_odd_even Podd Peven n.
+  intros.
+  unfold combine_odd_even.
+  destruct(NPeano.even n);
+  tauto.
+Qed.
 
 Theorem combine_odd_even_elim_odd :
-  ∀(Podd Peven : nat → Prop) (n : nat),
-    combine_odd_even Podd Peven n →
-    oddb n = true →
-    Podd n.
-Proof.
-  (* FILL IN HERE *) Admitted.
+  forall (Podd Peven : nat -> Prop) (n : nat),
+    combine_odd_even Podd Peven n ->
+      NPeano.even n = false ->
+        Podd n.
+  intros.
+  unfold combine_odd_even in *.
+  rewrite H0 in *.
+  trivial.
+Qed.
 
 Theorem combine_odd_even_elim_even :
-  ∀(Podd Peven : nat → Prop) (n : nat),
-    combine_odd_even Podd Peven n →
-    oddb n = false →
-    Peven n.
-Proof.
-  (* FILL IN HERE *) Admitted.
+  forall (Podd Peven : nat -> Prop) (n : nat),
+    combine_odd_even Podd Peven n ->
+      NPeano.even n = true ->
+        Peven n.
+  intros.
+  unfold combine_odd_even in *.
+  rewrite H0 in *.
+  trivial.
+Qed.
 
-☐
-
-One more quick digression, for adventurous souls: if we can define
- parameterized propositions using Definition, then can we also define them using Fixpoint?
-Of course we can! However, this kind of "recursive parameterization" 
-doesn't correspond to anything very familiar from everyday mathematics. 
-The following exercise gives a slightly contrived example.
-Exercise: 4 stars, optional (true_upto_n__true_everywhere)
-Define a recursive function true_upto_n__true_everywhere that makes true_upto_n_example work.
-
-(* 
-Fixpoint true_upto_n__true_everywhere
-(* FILL IN HERE *)
+Fixpoint true_upto_n__true_everywhere (n : nat) (P : nat -> Prop) { struct n } :=
+  match n with
+  | O => forall n, P n
+  | S N => (P n) -> true_upto_n__true_everywhere N P
+  end.
 
 Example true_upto_n_example :
     (true_upto_n__true_everywhere 3 (fun n => even n))
   = (even 3 -> even 2 -> even 1 -> forall m : nat, even m).
-Proof. reflexivity.  Qed.
-*)
-☐
-
-(* $Date: 2014-06-05 07:22:21 -0400 (Thu, 05 Jun 2014) $ *)
+  simpl in *.
+  trivial.
+Qed.
