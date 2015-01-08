@@ -259,7 +259,7 @@ Goal forall T l, @sub T l l.
   trivial.
 Qed.
 
-Goal forall T l1 l2 l3, @sub T l1 l2 -> sub l1 (l2 ++ l3).
+Theorem sub_app : forall T l1 l2 l3, @sub T l1 l2 -> sub l1 (l2 ++ l3).
   induction 1.
   simpl in *.
   induction l3.
@@ -280,7 +280,7 @@ Theorem sub_l_nil : forall T l, @sub T [] l.
   trivial.
 Qed.
 
-Goal forall T l1 l2 l3, @sub T l1 l2 -> sub l2 l3 -> sub l1 l3.
+Theorem sub_trans : forall T l1 l2 l3, @sub T l1 l2 -> sub l2 l3 -> sub l1 l3.
   induction l1.
   intros.
   apply sub_l_nil.
