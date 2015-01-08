@@ -1,6 +1,6 @@
-Load "Prop.v".
+Require Import Arith List Program Permutation.
 
-Require Import Arith List Program.
+Load "Prop.v".
 
 Set Implicit Arguments.
 
@@ -324,70 +324,191 @@ Theorem disjoint_inequal : forall T (le re : T) l, disjoint [le] (re :: l) -> le
   trivial.
 Qed.
 
-Theorem pigeonhole_principle: excluded_middle -> forall (X:Type) (l1 l2:list X),
-  (forall x, appears_in x l1 -> appears_in x l2) -> 
-    length l2 < length l1 -> 
-      repeats l1.
-  intro.
-  induction l1.
+Theorem repeats_cons : forall T (e : T) l, repeats l -> repeats (e :: l).
+  induction 1.
+  replace [e; x; x] with ([] ++ [e] ++ [x; x]);
+  trivial.
+  apply repeat_skip;
+  simpl in *;
+  constructor.
+  replace (e :: l ++ [x] ++ r) with ((e :: l) ++ [x] ++ r);
+  try apply repeat_skip;
+  trivial.
+Qed.
+
+Definition bring_to_front { T } 
+  (dec : forall l r : T, { l = r } + { l <> r }) e : 
+    forall l : list T, appears_in e l -> { lr | Permutation l lr /\ hd_error lr = value e }.
   intros.
+  induction l.
+  assert (False).
+  inversion H.
+  tauto.
+  destruct (dec e a).
+  subst.
+  exists (a :: l).
   simpl in *.
+  auto.
+  assert (appears_in e l).
+  inversion H.
+  tauto.
+  trivial.
+  intuition.
+  destruct X.
+  intuition.
+  exists (x ++ [a]).
+  intuition.
+  apply (@perm_trans _ _ (l ++ [a])).
+  apply Permutation_cons_append.
+  apply Permutation_app_tail.
+  trivial.
+  destruct x.
+  discriminate.
+  trivial.
+Defined.
+
+Theorem not_forall : 
+  excluded_middle -> 
+    forall X (F : _ -> Prop), ~(forall x : X, F x) ->
+      exists x, ~F x.
+  intros.
+  destruct (H (exists x : X, ~F x)).
+  trivial.
+  assert (False).
+  apply H0.
+  intros.
+  destruct (H (F x)).
+  trivial.
+  assert (False).
+  apply H1.
+  eauto.
+  tauto.
+  tauto.
+Qed.
+
+Theorem appears_repeat : forall T (e : T) l, appears_in e l -> repeats (e :: l).
+  induction l.
+  intros.
+  inversion H.
+  intros.
+  inversion H.
+  subst.
+  clear IHl H.
+  induction l.
+  constructor.
+  replace (a :: a :: a0 :: l) with ([a; a] ++ [a0] ++ l).
+  apply repeat_skip.
+  trivial.
+  trivial.
+  subst.
+  intuition.
+  replace (e :: a :: l) with ([e] ++ [a] ++ l).
+  apply repeat_skip.
+  trivial.
+  trivial.
+Qed.
+
+Theorem Permutation_appears : 
+  forall X (x : X) l r,
+    appears_in x l -> 
+      Permutation l r -> 
+        appears_in x r.
+  induction 2.
+  trivial.
+  inversion H;
+  subst;
+  constructor.
+  tauto.
+  inversion H;
+  subst;
+  try (repeat constructor;trivial;fail).
+  inversion H1;
+  subst;
+  try (repeat constructor;trivial;fail).
+  tauto.
+Qed.
+
+Definition appears_dec : forall (X : Type)
+  (H : (forall l r : X, { l = r } + { l <> r })),
+    forall (x : X) l,
+      { appears_in x l } + { ~appears_in x l }.
+  induction l.
+  right.
+  inversion 1.
+  destruct IHl.
+  left.
+  constructor.
+  trivial.
+  destruct (H x a).
+  subst.
+  left.
+  constructor.
+  right.
+  inversion 1;
+  subst;
+  tauto.
+Qed.
+
+Theorem pigeonhole_principle: forall (X : Type)
+  (H : (forall l r : X, { l = r } + { l <> r })), 
+    forall (l1 l2 : list X),
+      (forall x, appears_in x l1 -> appears_in x l2) -> 
+        length l2 < length l1 -> 
+          repeats l1.
+  induction l1;
+  intros;
+  simpl in *;
+  try omega.
+  destruct (appears_dec H a l1).
+  apply appears_repeat.
+  trivial.
+  assert (appears_in a l2).
+  apply H0.
+  constructor.
+  intros.
+  destruct (@bring_to_front X H a l2 H2).
+  destruct a0.
+  assert (forall x0 : X, appears_in x0 (a :: l1) -> appears_in x0 x).
+  intros.
+  apply (@Permutation_appears _ _ l2).
+  apply H0.
+  trivial.
+  trivial.
+  clear H0.
+  assert(length x < S (length l1)).
+  apply Permutation_length in H3.
   omega.
-  intros.
-  destruct l2.
+  clear H1.
+  assert(appears_in a x).
+  apply (@Permutation_appears _ _ l2).
+  trivial.
+  trivial.
+  clear H2 H3 l2.
+  destruct x.
+  discriminate.
   simpl in *.
-  admit.
-  simpl in *.
-  destruct (H (forall x : X, appears_in x l1 -> appears_in x l2)).
+  destruct (H a x).
+  subst.
+  clear H1.
   assert(repeats l1).
-  apply (IHl1 l2).
+  apply (IHl1 x0);
+  intros.
+  assert(appears_in x1 (x :: l1)).
+  constructor;
   trivial.
+  specialize (H5 x1);
+  intuition.
+  destruct (H x1 x);
+  subst.
+  tauto.
+  inversion H3;
+  subst;
+  trivial;
+  tauto.
   omega.
-  admit.
-  destruct (H (exists x0 : X, ~(appears_in x0 l1 -> appears_in x0 l2))).
-  destruct H3.
-  destruct (H (appears_in x0 l1)).
-  destruct (H (appears_in x0 l2)).
-  tauto.
-  clear H3 H2.
-  assert(appears_in x0 (x :: l2)).
-  apply H0.
-  constructor.
+  apply repeats_cons.
   trivial.
-  inversion H2.
-  subst.
-  assert(appears_in a (x :: l2)).
-  apply H0.
-  constructor.
-  destruct (H (a = x)).
-  subst.
-  admit.
-  inversion H3.
-  subst.
-  tauto.
-  subst.
-  clear H2 H3.
-  destruct (H (repeats (a :: l1))).
-  trivial.
-  assert(False).
-  admit.
-  tauto.
-  subst.
-  tauto.
-  tauto.
-  intuition.
-  destruct (H (repeats (a :: l1))).
-  trivial.
-  assert(False).
-  apply H2.
-  intros.
-  destruct (H (appears_in x0 l2)).
-  trivial.
-  assert(False).
-  apply H3.
-  exists x0.
-  intros.
-  intuition.
-  tauto.
+  inversion H4;
+  subst;
   tauto.
 Qed.
