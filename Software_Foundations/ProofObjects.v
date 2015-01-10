@@ -66,3 +66,15 @@ Definition or_commut : forall P Q : Prop,
       | or_introl P => or_intror P
       | or_intror Q => or_introl Q
       end.
+
+Definition p : ex (fun n => beautiful (S n)) :=
+  (ex_intro (fun x => beautiful (S x)) 2) b_3.
+
+Example trans_eq_example' : forall (a b c d e f : nat),
+  [a;b] = [c;d] ->
+    [c;d] = [e;f] ->
+      [a;b] = [e;f].
+  intros.
+  apply (trans_eq H).
+  trivial.
+Qed.
