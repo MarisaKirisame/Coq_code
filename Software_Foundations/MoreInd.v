@@ -11,10 +11,17 @@ Inductive ExSet : Type :=
 | con1 : bool -> ExSet
 | con2 : nat -> ExSet -> ExSet.
 
-mytype_ind :
-∀(X : Type) (P : mytype X → Prop),
-(∀x : X, P (constr1 X x)) →
-(∀n : nat, P (constr2 X n)) →
-(∀m : mytype X, P m →
-∀n : nat, P (constr3 X m n)) →
-∀m : mytype X, P m
+Inductive mytype (T : Type) :=
+| constr1 : T -> mytype T
+| constr2 : nat -> mytype T
+| constr3 : mytype T -> nat -> mytype T.
+
+Inductive foo (X Y : Type) :=
+| bar : X -> foo X Y
+| baz : Y -> foo X Y
+| quux : (nat -> foo X Y) -> foo X Y.
+
+Inductive bar' : Set :=
+| bar1 : nat -> bar'
+| bar2 : bar' -> bar'
+| bar3 : bool -> bar' -> bar'.
