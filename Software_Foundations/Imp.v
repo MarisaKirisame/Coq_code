@@ -186,3 +186,142 @@ Inductive aevalR : aexp -> nat -> Prop :=
     aevalR e1 n1 ->
       aevalR e2 n2 ->
         aevalR (AMult e1 e2) (n1 * n2).
+
+Inductive bevalR : bexp -> bool -> Prop :=
+| E_BTrue : bevalR BTrue true
+| E_BFalse : bevalR BFalse false
+| E_BEq : forall a1 a2 n1 n2,
+    aevalR a1 n1 -> 
+      aevalR a2 n2 -> 
+        bevalR (BEq a1 a2) (beq_nat n1 n2)
+| E_BLe : forall a1 a2 n1 n2,
+    aevalR a1 n1 -> 
+      aevalR a2 n2 -> 
+        bevalR (BLe a1 a2) (leb n1 n2)
+| E_BNot : forall b bo, 
+    bevalR b bo ->
+      bevalR (BNot b) (negb bo)
+| E_BAnd : forall b1 b2 bo1 bo2,
+    bevalR b1 bo1 -> 
+      bevalR b2 bo2 ->
+        bevalR (BAnd b1 b2) (andb bo1 bo2).
+
+Theorem aevalR_correct : forall a n, aevalR a n <-> aeval a = n.
+  split.
+  induction 1;
+  subst;
+  trivial.
+  intros.
+  generalize dependent n.
+  induction a;
+  intros;
+  subst;
+  simpl in *;
+  constructor;
+  auto.
+Qed.
+
+Theorem bevalR_correct : forall b bo, bevalR b bo <-> beval b = bo.
+  intuition.
+  induction H;
+  simpl in *;
+  subst;
+  trivial;
+  f_equal;
+  apply aevalR_correct;
+  trivial.
+  generalize dependent bo.
+  induction b;
+  intros;
+  subst;
+  simpl in *;
+  constructor;
+  auto;
+  apply aevalR_correct;
+  trivial.
+Qed.
+
+Inductive id : Type := Id : nat -> id.
+
+Theorem eq_id_dec : forall id1 id2 : id, {id1 = id2} + {id1 <> id2}.
+  intros.
+  destruct id1, id2.
+  destruct (eq_nat_dec n n0).
+  subst.
+  tauto.
+  right.
+  intuition.
+  inversion H.
+  tauto.
+Defined.
+
+Lemma eq_id : forall(T:Type) x (p q:T), (if eq_id_dec x x then p else q) = p.
+  intros.
+  destruct (eq_id_dec x x);
+  tauto.
+Qed.
+
+Lemma neq_id : forall (T:Type) x y (p q:T), x <> y -> (if eq_id_dec x y then p else q) = q.
+  intros.
+  destruct (eq_id_dec x y);
+  tauto.
+Qed.
+
+Definition state := id -> nat.
+
+Definition empty_state : state := fun _ => 0.
+
+Definition update (st : state) (x : id) (n : nat) : state :=
+  fun x' => if eq_id_dec x x' then n else st x'.
+
+Theorem update_eq : forall n x st,
+  (update st x n) x = n.
+  intros.
+  unfold update.
+  apply eq_id.
+Qed.
+
+Theorem update_neq : forall x2 x1 n st, x2 <> x1 ->
+  (update st x2 n) x1 = (st x1).
+  intros.
+  unfold update.
+  apply neq_id.
+  trivial.
+Qed.
+
+Theorem update_example : forall (n:nat),
+  (update empty_state (Id 2) n) (Id 3) = 0.
+  trivial.
+Qed.
+
+Theorem update_shadow : forall n1 n2 x1 x2 (st : state),
+  (update (update st x2 n1) x2 n2) x1 = (update st x2 n2) x1.
+  intros.
+  unfold update.
+  destruct (eq_id_dec x2 x1);
+  trivial.
+Qed.
+
+Theorem update_same : forall n1 x1 x2 (st : state),
+  st x1 = n1 ->
+    (update st x1 n1) x2 = st x2.
+  intros.
+  subst.
+  unfold update.
+  destruct (eq_id_dec x1 x2);
+  subst;
+  trivial.
+Qed.
+
+Theorem update_permute : forall n1 n2 x1 x2 x3 st,
+  x2 <> x1 ->
+    (update (update st x2 n1) x1 n2) x3 = (update (update st x1 n2) x2 n1) x3.
+  intros.
+  unfold update.
+  destruct (eq_id_dec x1 x3).
+  subst.
+  symmetry.
+  apply neq_id.
+  trivial.
+  trivial.
+Qed.
