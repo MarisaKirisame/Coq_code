@@ -170,3 +170,19 @@ Program Definition boptimize aoptimize_func
     f_equal;
     trivial.
   Defined.
+
+Inductive aevalR : aexp -> nat -> Prop :=
+| E_ANum : forall(n: nat),
+    aevalR (ANum n) n
+| E_APlus : forall(e1 e2: aexp) (n1 n2: nat),
+    aevalR e1 n1 ->
+      aevalR e2 n2 ->
+        aevalR (APlus e1 e2) (n1 + n2)
+| E_AMinus: forall(e1 e2: aexp) (n1 n2: nat),
+    aevalR e1 n1 ->
+      aevalR e2 n2 ->
+        aevalR (AMinus e1 e2) (n1 - n2)
+| E_AMult : forall(e1 e2: aexp) (n1 n2: nat),
+    aevalR e1 n1 ->
+      aevalR e2 n2 ->
+        aevalR (AMult e1 e2) (n1 * n2).
