@@ -1,4 +1,4 @@
-Require Import Arith Omega.
+Require Import Arith Omega List Program.
 
 Set Implicit Arguments.
 
@@ -589,4 +589,74 @@ Theorem no_whilesR_terminate c : no_whilesR c -> forall st, exists st', ceval c 
   eapply E_IfFalse.
   trivial.
   eauto.
-Qed.  
+Qed.
+
+Inductive sinstr : Type :=
+| SPush : nat -> sinstr
+| SLoad : id -> sinstr
+| SPlus : sinstr
+| SMinus : sinstr
+| SMult : sinstr.
+
+Fixpoint compile (a : aexp) : list sinstr :=
+  match a with
+  | ANum n => [SPush n]
+  | AId i => [SLoad i]
+  | APlus l r => (compile l) ++ (compile r) ++ [SPlus]
+  | AMinus l r => (compile l) ++ (compile r) ++ [SMinus]
+  | AMult l r => (compile l) ++ (compile r) ++ [SMult]
+  end.
+
+Definition sprocess st (stack : list nat) (s : sinstr) : list nat :=
+  match stack, s with
+  | _, SPush n => n :: stack
+  | _, SLoad id => st id :: stack
+  | n :: m :: st, SPlus => (m + n) :: st
+  | n :: m :: st, SMinus => (m - n) :: st
+  | n :: m :: st, SMult => (m * n) :: st
+  | _, _ => nil
+  end.
+
+Fixpoint seval_inner (st : state) stack (linstr : list sinstr) : list nat :=
+  match linstr with
+  | nil => stack
+  | linstr_head :: linstr_tail => seval_inner st (sprocess st stack linstr_head) linstr_tail
+  end.
+
+Definition seval st linstr := seval_inner st nil linstr.
+
+Lemma seval_inner_split : forall st l r stack,
+  seval_inner st stack (l ++ r) = seval_inner st (seval_inner st stack l) r.
+  induction l.
+  trivial.
+  intros.
+  simpl in *.
+  trivial.
+Qed.
+
+Lemma seval_inner_correct :
+  forall exp st stack, seval_inner st stack (compile exp) = (aeval st exp) :: stack.
+  intros.
+  generalize dependent stack;
+  induction exp;
+  try solve
+  [
+    destruct stack;
+    trivial;
+    simpl in *;
+    destruct stack;
+    trivial
+  ];
+  simpl in *;
+  intros;
+  repeat rewrite seval_inner_split;
+  rewrite IHexp1;
+  rewrite IHexp2;
+  trivial.
+Qed.
+
+Theorem seval_correct : forall exp st, seval st (compile exp) = [aeval st exp].
+  unfold seval.
+  intros.
+  apply seval_inner_correct.
+Qed.
