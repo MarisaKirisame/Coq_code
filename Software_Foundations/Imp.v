@@ -463,3 +463,40 @@ Theorem pup_to_2_ceval :
     try reflexivity;
     trivial.
 Qed.
+
+Ltac invc H := inversion H; subst; clear H.
+
+Theorem ceval_deterministic: forall c st st1 st2,
+  ceval c st st1 ->
+    ceval c st st2 ->
+      st1 = st2.
+  intros.
+  generalize dependent st2.
+  induction H;
+  intros;
+  repeat(
+    match goal with
+    | [ H : ceval SKIP _ _ |- _ ] => invc H
+    | [ H : ceval (CAss _ _) _ _ |- _ ] => invc H
+    | [ H : ceval (CSeq _ _) _ _ |- _ ] => invc H
+    | [ H : ceval (CIf _ _ _) _ _ |- _ ] => invc H
+    | [ H : ceval (CWhile _ _) _ _ |- _ ] => invc H
+    end;
+    trivial;
+    try match goal with
+    | [ H : _ = false |- _ ] => rewrite H in *; discriminate
+    end;
+    repeat(
+      match goal with
+      | [ H : ceval ?C ?SB ?SA |- _ ] => 
+        match goal with
+        | [ H0 : ceval C SB ?SA0 |- _ ] => 
+          match type of H0 with
+          | ceval C SB SA => fail 1
+          | _ => assert(SA = SA0); auto; try solve [ symmetry; auto ]; subst
+          end
+        end
+      end);
+      auto;
+    auto).
+Qed.
