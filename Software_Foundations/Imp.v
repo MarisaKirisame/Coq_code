@@ -500,3 +500,93 @@ Theorem ceval_deterministic: forall c st st1 st2,
       auto;
     auto).
 Qed.
+
+Goal forall st x y st',
+  st X = x -> st Y = y -> ceval XtimesYinZ st st' -> st' Z = x * y.
+  intros.
+  invc H1.
+  trivial.
+Qed.
+
+Definition loop : com :=
+  WHILE BTrue DO
+    SKIP
+  END.
+
+Theorem loop_never_stops : forall st st',
+  ~(ceval loop st st').
+  remember loop.
+  unfold loop in *.
+  intuition.
+  induction H;
+  try discriminate.
+  inversion Heqc.
+  subst.
+  discriminate.
+  tauto.
+Qed.
+
+Fixpoint no_whiles (c : com) : bool :=
+  match c with
+  | SKIP => true
+  | _ ::= _ => true
+  | c1 ;; c2 => andb (no_whiles c1) (no_whiles c2)
+  | IFB _ THEN ct ELSE cf FI => andb (no_whiles ct) (no_whiles cf)
+  | WHILE _ DO _ END => false
+  end.
+
+Inductive no_whilesR: com -> Prop :=
+| NSkip : no_whilesR SKIP
+| NAss : forall id a, no_whilesR (id ::= a)
+| NSeq : forall cl cr, no_whilesR cl -> no_whilesR cr -> no_whilesR (cl;;cr)
+| NIf : forall b cl cr, 
+    no_whilesR cl -> 
+      no_whilesR cr -> 
+        no_whilesR (IFB b THEN cl ELSE cr FI).
+
+Theorem no_whiles_eqv:
+  forall c, no_whiles c = true <-> no_whilesR c.
+  split.
+  intros.
+  induction c;
+  simpl in *;
+  try solve [constructor|discriminate];
+  destruct (no_whiles c1) eqn:Hc;
+  simpl in *;
+  try discriminate;
+  intuition;
+  constructor;
+  trivial.
+  induction 1;
+  trivial;
+  simpl in *;
+  auto with *.
+Qed.
+
+Theorem no_whilesR_terminate c : no_whilesR c -> forall st, exists st', ceval c st st'.
+  induction 1.
+  econstructor.
+  constructor.
+  econstructor.
+  constructor.
+  trivial.
+  intros.
+  destruct (IHno_whilesR1 st).
+  destruct (IHno_whilesR2 x).
+  econstructor.
+  econstructor.
+  eauto.
+  eauto.
+  intros.
+  destruct (beval st b) eqn:HB.
+  destruct (IHno_whilesR1 st).
+  econstructor.
+  eapply E_IfTrue.
+  trivial.
+  eauto.
+  destruct (IHno_whilesR2 st).
+  econstructor.
+  eapply E_IfFalse.
+  trivial.
+  eauto.
+Qed.  
