@@ -767,3 +767,18 @@ Theorem while_break_true : forall b c st st',
   tauto.
   eauto.
 Qed.
+
+Fixpoint beval_short (st : state)(b : bexp) : bool :=
+  match b with
+  | BTrue => true
+  | BFalse => false
+  | BEq a1 a2 => beq_nat (aeval st a1) (aeval st a2)
+  | BLe a1 a2 => leb (aeval st a1) (aeval st a2)
+  | BNot b1 => negb (beval st b1)
+  | BAnd b1 b2 => if (beval st b1) then (beval st b2) else false
+  end.
+
+Goal forall st b, beval_short st b = beval st b.
+  induction b;
+  trivial.
+Qed.
