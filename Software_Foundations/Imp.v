@@ -355,6 +355,8 @@ Notation "'WHILE' b 'DO' c 'END'" :=
   (CWhile b c) (at level 80, right associativity).
 Notation "'IFB' c1 'THEN' c2 'ELSE' c3 'FI'" :=
   (CIf c1 c2 c3) (at level 80, right associativity).
+Notation "'FOR' init ';' test ';' modify c" := 
+  (init;;(WHILE test DO (c;;modify) END)) (at level 80, right associativity).
 
 Definition X := Id 0.
 Definition Y := Id 1.
@@ -746,4 +748,22 @@ Theorem seval_correct : forall exp st, seval st (compile exp) = [aeval st exp].
   unfold seval.
   intros.
   apply seval_inner_correct.
+Qed.
+
+Theorem while_break_true : forall b c st st',
+  ceval (WHILE b DO c END) SContinue st st' ->
+    beval st' b = true ->
+      exists st'', ceval c SBreak st'' st'.
+  intros.
+  generalize dependent H0.
+  dependent induction H;
+  intros.
+  rewrite H in *.
+  discriminate.
+  invc H1.
+  rewrite H2 in *.
+  discriminate.
+  tauto.
+  tauto.
+  eauto.
 Qed.
