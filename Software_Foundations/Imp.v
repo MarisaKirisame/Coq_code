@@ -340,10 +340,13 @@ Inductive com : Type :=
 | CAss : id -> aexp -> com
 | CSeq : com -> com -> com
 | CIf : bexp -> com -> com -> com
-| CWhile : bexp -> com -> com.
+| CWhile : bexp -> com -> com
+| CBreak.
 
 Notation "'SKIP'" :=
   CSkip.
+Notation "'BREAK'" :=
+  CBreak.
 Notation "x '::=' a" :=
   (CAss x a) (at level 60).
 Notation "c1 ;; c2" :=
@@ -385,37 +388,49 @@ Definition subtract_3_from_5_slowly : com :=
   Z ::= ANum 5 ;;
   subtract_slowly.
 
-Inductive ceval : com -> state -> state -> Prop :=
+Inductive status : Type :=
+| SContinue : status
+| SBreak : status.
+
+Inductive ceval : com -> status -> state -> state -> Prop :=
 | E_Skip : forall st,
-    ceval SKIP st st
+    ceval SKIP SContinue st st
 | E_Ass : forall st a1 n x,
     aeval st a1 = n ->
-      ceval (x ::= a1) st (update st x n)
-| E_Seq : forall c1 c2 st st' st'',
-    ceval c1 st st' ->
-      ceval c2 st' st'' ->
-        ceval (c1 ;; c2) st st''
-| E_IfTrue : forall st st' b c1 c2,
+      ceval (x ::= a1) SContinue st (update st x n)
+| E_Seq : forall c1 c2 st st' st'' sta,
+    ceval c1 SContinue st st' ->
+      ceval c2 sta st' st'' ->
+        ceval (c1 ;; c2) sta st st''
+| E_SeqBreak : forall c1 c2 st st',
+    ceval c1 SBreak st st' -> ceval (c1 ;; c2) SBreak st st'
+| E_IfTrue : forall st st' b c1 c2 sta,
     beval st b = true ->
-      ceval c1 st st' ->
-        ceval (IFB b THEN c1 ELSE c2 FI) st st'
-| E_IfFalse : forall st st' b c1 c2,
+      ceval c1 sta st st' ->
+        ceval (IFB b THEN c1 ELSE c2 FI) sta st st'
+| E_IfFalse : forall st st' b c1 c2 sta,
     beval st b = false ->
-      ceval c2 st st' ->
-        ceval (IFB b THEN c1 ELSE c2 FI) st st'
+      ceval c2 sta st st' ->
+        ceval (IFB b THEN c1 ELSE c2 FI) sta st st'
 | E_WhileEnd : forall b st c,
     beval st b = false ->
-      ceval (WHILE b DO c END) st st
+      ceval (WHILE b DO c END) SContinue st st
 | E_WhileLoop : forall st st' st'' b c,
     beval st b = true ->
-      ceval c st st' ->
-        ceval (WHILE b DO c END) st' st'' ->
-          ceval (WHILE b DO c END) st st''.
+      ceval c SContinue st st' ->
+        ceval (WHILE b DO c END) SContinue st' st'' ->
+          ceval (WHILE b DO c END) SContinue st st''
+| E_WhileBreak : forall st st' b c,
+    beval st b = true ->
+      ceval c SBreak st st' ->
+          ceval (WHILE b DO c END) SContinue st st'
+| E_Brake : forall st, ceval BREAK SBreak st st.
 
 Example ceval_example2:
   ceval
     (X ::= ANum 0;; Y ::= ANum 1;; Z ::= ANum 2)
-      empty_state 
+      SContinue
+      empty_state
         (update (update (update empty_state X 0) Y 1) Z 2).
   econstructor.
   constructor.
@@ -440,6 +455,7 @@ Definition pup_to_n : com :=
 Theorem pup_to_2_ceval :
   ceval
     pup_to_n
+      SContinue
       (update empty_state X 2)
         (update 
           (update
@@ -455,54 +471,108 @@ Theorem pup_to_2_ceval :
             Y 3)
           X 0).
   unfold pup_to_n.
-  repeat 
-    econstructor;
-    simpl in *;
-    try constructor;
-    simpl in *;
-    try reflexivity;
-    trivial.
+  repeat
+    match goal with
+    |- context f [ ceval ?C _ _ _ ] => 
+        match C with
+        | (WHILE _ DO _ END) => 
+            try (apply E_WhileEnd; reflexivity); eapply E_WhileLoop; try reflexivity
+        | (_ ::= _) => eapply E_Ass; try reflexivity
+        | (_ ;; _) => eapply E_Seq; try reflexivity
+        end
+    end.
 Qed.
 
 Ltac invc H := inversion H; subst; clear H.
 
-Theorem ceval_deterministic: forall c st st1 st2,
-  ceval c st st1 ->
-    ceval c st st2 ->
-      st1 = st2.
+Ltac invc_stop := 
+  repeat match goal with
+  | [ H : ceval SKIP _ _ _ |- _ ] => invc H
+  | [ H : ceval (CAss _ _) _ _ _ |- _ ] => invc H
+  | [ H : ceval (CSeq _ _) _ _ _ |- _ ] => invc H
+  | [ H : ceval (CIf _ _ _) _ _ _ |- _ ] => invc H
+  | [ H : ceval BREAK _ _ _ |- _ ] => invc H
+  end.
+
+Theorem forall_split : 
+  forall T L R,
+    (forall s : T, L s /\ R s) <-> 
+      (forall s, L s) /\ (forall s, R s).
+  intuition;
+  destruct (H s);
+  trivial.
+Qed.
+
+Theorem ceval_deterministic: forall c st sta1 sta2 st1 st2,
+  ceval c sta1 st st1 ->
+    ceval c sta2 st st2 ->
+      sta1 = sta2 /\ st1 = st2.
   intros.
   generalize dependent st2.
+  generalize dependent sta2.
+  assert
+    ((forall sta2 st2, ceval c sta2 st st2 -> sta1 = sta2) /\ 
+    (forall sta2 st2, ceval c sta2 st st2 -> st1 = st2)).
   induction H;
   intros;
-  repeat(
-    match goal with
-    | [ H : ceval SKIP _ _ |- _ ] => invc H
-    | [ H : ceval (CAss _ _) _ _ |- _ ] => invc H
-    | [ H : ceval (CSeq _ _) _ _ |- _ ] => invc H
-    | [ H : ceval (CIf _ _ _) _ _ |- _ ] => invc H
-    | [ H : ceval (CWhile _ _) _ _ |- _ ] => invc H
-    end;
-    trivial;
-    try match goal with
-    | [ H : _ = false |- _ ] => rewrite H in *; discriminate
-    end;
-    repeat(
-      match goal with
-      | [ H : ceval ?C ?SB ?SA |- _ ] => 
-        match goal with
-        | [ H0 : ceval C SB ?SA0 |- _ ] => 
-          match type of H0 with
-          | ceval C SB SA => fail 1
-          | _ => assert(SA = SA0); auto; try solve [ symmetry; auto ]; subst
-          end
-        end
-      end);
-      auto;
-    auto).
+  intuition;
+  invc_stop;
+  trivial;
+  match goal with
+  | [ H : _ = true |- _] => rewrite H in *
+  | _ => idtac
+  end;
+  try discriminate;
+  try
+    (assert(SContinue = SBreak);
+    eauto;
+    discriminate);
+  try
+    (assert(SBreak = SContinue);
+    eauto;
+    discriminate);
+  try (assert(st' = st'0);[eauto;fail|]);
+  subst;
+  eauto.
+  invc H0;
+  trivial.
+  invc H0;
+  trivial;
+  match goal with
+  | [ H : _ = true |- _] => rewrite H in *
+  | _ => idtac
+  end;
+  try discriminate.
+  invc H6;
+  trivial.
+  invc H6;
+  trivial;
+  match goal with
+  | [ H : _ = true |- _] => rewrite H in *
+  | _ => idtac
+  end;
+  try discriminate.
+  try (assert(st' = st'0);[eauto;fail|]);
+  subst;
+  eauto.
+  try
+    (assert(SContinue = SBreak);
+    eauto;
+    discriminate).
+  invc H3;
+  trivial.
+  invc H3;
+  eauto with *.
+  try
+    (assert(SBreak = SContinue);
+    eauto;
+    discriminate).
+  intuition;
+  eauto.
 Qed.
 
 Goal forall st x y st',
-  st X = x -> st Y = y -> ceval XtimesYinZ st st' -> st' Z = x * y.
+  st X = x -> st Y = y -> ceval XtimesYinZ SContinue st st' -> st' Z = x * y.
   intros.
   invc H1.
   trivial.
@@ -513,17 +583,16 @@ Definition loop : com :=
     SKIP
   END.
 
-Theorem loop_never_stops : forall st st',
-  ~(ceval loop st st').
+Theorem loop_never_stops : forall st sta st',
+  ~(ceval loop sta st st').
   remember loop.
   unfold loop in *.
   intuition.
   induction H;
+  invc Heqc;
   try discriminate.
-  inversion Heqc.
-  subst.
-  discriminate.
   tauto.
+  invc H0.
 Qed.
 
 Fixpoint no_whiles (c : com) : bool :=
@@ -532,6 +601,7 @@ Fixpoint no_whiles (c : com) : bool :=
   | _ ::= _ => true
   | c1 ;; c2 => andb (no_whiles c1) (no_whiles c2)
   | IFB _ THEN ct ELSE cf FI => andb (no_whiles ct) (no_whiles cf)
+  | BREAK => true
   | WHILE _ DO _ END => false
   end.
 
@@ -542,7 +612,8 @@ Inductive no_whilesR: com -> Prop :=
 | NIf : forall b cl cr, 
     no_whilesR cl -> 
       no_whilesR cr -> 
-        no_whilesR (IFB b THEN cl ELSE cr FI).
+        no_whilesR (IFB b THEN cl ELSE cr FI)
+| NBreak : no_whilesR BREAK.
 
 Theorem no_whiles_eqv:
   forall c, no_whiles c = true <-> no_whilesR c.
@@ -563,32 +634,48 @@ Theorem no_whiles_eqv:
   auto with *.
 Qed.
 
-Theorem no_whilesR_terminate c : no_whilesR c -> forall st, exists st', ceval c st st'.
-  induction 1.
+Theorem no_whilesR_terminate c : no_whilesR c -> forall st, exists st' sta, ceval c sta st st'.
+  induction 1;
+  intros.
+  econstructor.
   econstructor.
   constructor.
+  econstructor.
   econstructor.
   constructor.
   trivial.
-  intros.
   destruct (IHno_whilesR1 st).
+  destruct H1.
+  destruct x0.
   destruct (IHno_whilesR2 x).
+  destruct H2.
   econstructor.
   econstructor.
+  eapply E_Seq.
   eauto.
   eauto.
-  intros.
-  destruct (beval st b) eqn:HB.
+  econstructor.
+  econstructor.
+  constructor.
+  eauto.
   destruct (IHno_whilesR1 st).
-  econstructor.
-  eapply E_IfTrue.
-  trivial.
-  eauto.
+  destruct H1.
   destruct (IHno_whilesR2 st).
-  econstructor.
-  eapply E_IfFalse.
+  destruct H2.
+  destruct (beval st b) eqn:He.
+  exists x.
+  exists x0.
+  constructor.
   trivial.
-  eauto.
+  trivial.
+  exists x1.
+  exists x2.
+  apply E_IfFalse.
+  trivial.
+  trivial.
+  econstructor.
+  econstructor.
+  econstructor.
 Qed.
 
 Inductive sinstr : Type :=
