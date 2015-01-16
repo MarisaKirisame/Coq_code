@@ -130,23 +130,48 @@ Theorem ceval_step_more: forall i1 i2 st st' c,
   auto with *.
 Qed.
 
-Exercise: 3 stars (ceval__ceval_step)
-Finish the following proof. 
-You'll need ceval_step_more in a few places, as well as some basic facts about ≤ and plus.
+Theorem ceval__ceval_step: forall c st st' sta,
+  ceval c sta st st' ->
+    exists i, ceval_step st c i = Some (st', sta).
+  intros c st st' sta Hce.
+  induction Hce;
+  subst;
+  try destruct IHHce1, IHHce2;
+  try destruct IHHce;
+  try solve
+  [
+    exists 1;
+    trivial
+  ];
+  try exists (S (x + x0));
+  try exists (S x);
+  try exists 1;
+  simpl in *;
+  try rewrite H;
+  try rewrite H0;
+  trivial;
+  repeat match goal with
+  | [H : ceval_step _ _ _ = _ |- _] => 
+    progress (apply (ceval_step_more (i2 := x + x0)) in H; try omega)
+  end;
+  [
+    destruct (ceval_step st c1 (x + x0)) eqn:Heq|
+    destruct (ceval_step st c (x + x0)) eqn:Heq
+  ];
+  try discriminate;
+  destruct p;
+  simpl in *;
+  match goal with
+  | [H : Some _ = Some _ |- _] => invc H
+  end;
+  trivial.
+Qed.
 
-Theorem ceval__ceval_step: ∀c st st',
-      c / st ⇓ st' →
-      ∃i, ceval_step st c i = Some st'.
-Proof.
-  intros c st st' Hce.
-  ceval_cases (induction Hce) Case.
-  (* FILL IN HERE *) Admitted.
-☐
-
-Theorem ceval_and_ceval_step_coincide: ∀c st st',
-      c / st ⇓ st'
-  ↔ ∃i, ceval_step st c i = Some st'.
-Proof.
+Theorem ceval_and_ceval_step_coincide: forall c st st' sta,
+      ceval c sta st st'
+  <-> exists i, ceval_step st c i = Some (st', sta).
   intros c st st'.
-  split. apply ceval__ceval_step. apply ceval_step__ceval.
+  split.
+  apply ceval__ceval_step.
+  apply ceval_step__ceval.
 Qed.
