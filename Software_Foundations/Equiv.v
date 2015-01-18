@@ -189,11 +189,51 @@ Definition update_equiv_property : forall n st i1 a1,
   tauto.
 Qed.
 
+Ltac UPD :=
+  unfold update;
+  destruct eq_id_dec;
+  subst;
+  trivial;
+  try discriminate;
+  try tauto;
+  simpl in *.
+
+Theorem update_equiv : forall i1 a1 n st,
+  var_not_used_in_aexp i1 a1 -> 
+    aeval (update st i1 n) a1 = aeval st a1.
+  intros.
+  induction H;
+  trivial;
+  simpl in *;
+  intuition.
+  UPD.
+Qed.
+
 Theorem aexpr_subst_equiv : forall i1 a1 a2 st,
   var_not_used_in_aexp i1 a1 ->
     aeval (update st i1 (aeval st a1)) (subst_aexp i1 a1 a2) =
     aeval (update st i1 (aeval st a1)) a2.
-Admitted.
+  destruct a1;
+  intros;
+  simpl in *;
+  invc H;
+  induction a2;
+  simpl in *;
+  auto;
+  try solve [repeat UPD];
+  simpl in *;
+  destruct eq_id_dec;
+  subst;
+  simpl in *;
+  trivial;
+  unfold update at 3;
+  destruct eq_id_dec;
+  subst;
+  f_equal;
+  try apply update_equiv;
+  trivial;
+  tauto.
+Qed.
 
 Definition subst_equiv_property : forall i1 i2 a1 a2,
   var_not_used_in_aexp i1 a1 ->
