@@ -1,23 +1,37 @@
 Set Implicit Arguments.
 
+Require Import List Program.
+
+Definition set T := T -> Prop.
+
+Definition contain { T } (S : set T) R := S R.
+
 Inductive vector T : nat -> Type :=
 | VNil : vector T 0
 | VCons : forall n, T -> vector T n -> vector T (S n).
 
-Inductive AX { S : Type -> Prop } { Ar : forall s, S s -> nat } :=
-| O : forall s (p : S s), vector AX (Ar s p) -> AX.
+Inductive ihlist { F : Type -> Type } : list Type -> Type :=
+| ihnil : ihlist nil
+| ihcons : forall T L, F T -> ihlist L -> ihlist (T :: L).
 
-Inductive AllSatisfy { T : Type } { P : T -> Type } : forall n, vector T n -> Type :=
-| SatNil : AllSatisfy (VNil T)
-| SatCons : forall n (v : vector T n) e, P e -> AllSatisfy v -> AllSatisfy (VCons e v).
+Implicit Arguments ihlist[].
 
-Fixpoint Induction (S : Type -> Prop) Ar (P : @AX S Ar -> Type)
-  (F : forall s p (v : vector _ (Ar s p)),
-    @AllSatisfy AX P _ v ->
-      P (@O _ Ar s p v))
-        (X : @AX S Ar) : P X.
-  destruct X.
-  apply F.
+Definition operator := list Type.
+
+Inductive AXs
+  { S : set Type }
+    { Os : forall s, contain S s -> list operator }
+    { Xs : forall s, contain S s -> list s } : Type -> Type :=
+| XAXs : forall s (c : contain S s)(s' : s), In s' (Xs s c) -> AXs s
+| OAXs : forall s (c : contain S s), forall op : operator, In op (Os s c) -> 
+    ihlist (fun s' => AXs s') op -> AXs s.
+
+Implicit Arguments AXs[].
+Fixpoint Induction S Os Xs (P : forall T, AXs S Os Xs T -> Type)
+  (FX : forall s (c : contain S s)(s' : s)(i : In s' (Xs s c)), P s (XAXs c s' i))
+  T (AX : AXs S Os Xs T) : P T AX.
+  destruct AX.
+  apply FX.
   induction v.
   constructor.
   constructor.
