@@ -102,23 +102,37 @@ Section AST.
     intuition.
   Defined.
   Check list_eq_dec.
-  Definition remove { s : Type } (c : contain S s) (v : operator_inner c) :
+  Definition remove_operator_inner { s : Type } (c : contain S s) (v : operator c) :
     forall s', contain S s' ->
       { ls : list (operator_inner c) |
-        ( s = s' -> Permutation (v :: ls) (Os c)) /\
+        (s = s' -> Permutation ((get_arity v) :: ls) (Os c)) /\
         (s' <> s -> ls = Os c) }.
     intros.
     destruct (sdec c H).
     subst.
-    remember (Os c).
-    admit.
+    destruct v.
+    destruct (remove p).
+    simpl in *.
+    exists x.
+    tauto.
     exists (Os c).
     intuition.
   Defined.
+  Definition remove_operator { s : Type } (c : contain S s) (v : operator c) : 
+    forall s' (c' : contain S s'), list (operator_inner c') := 
+      fun s' c' => proj1_sig (remove_operator_inner v c').
 End AST.
 
 Extraction ast_size. (*Testing if AST_rect is useful*)(*should not be defined with AST_size*)
 
+(*ihlist (fun s' => AXs s') (get_arity op)*)
+
+Definition AST_substitute S Os T s sdec (c : contain S s)
+  (op : operator Os c) (ast : AXs Os T)
+    (f : ihlist (fun s' => AXs Os s') (get_arity op) -> 
+      ihlist (fun s' => AXs (remove_operator sdec op) s') (get_arity op))
+  : AXs (remove_operator sdec op) T.
+  
 Definition subst { S S' } (s : S)(Heq : S ~= S') : {s' : S' | s ~= s' }.
   subst.
   exists s.
@@ -130,5 +144,3 @@ Theorem subst_eq : forall S (eq : S ~= S)(s : S), JMeq s (proj1_sig(subst s eq))
   destruct (subst s eq).
   trivial.
 Qed.
-
-Definition remove_op { S : set Type } { s : Type } (c : contain S s)(o : operator_inner _ c) := 1.
