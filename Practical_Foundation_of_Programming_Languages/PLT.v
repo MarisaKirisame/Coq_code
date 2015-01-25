@@ -44,20 +44,23 @@ Implicit Arguments ihlist_forall[F].
 
 Section AST.
   Variable S : set Type.
-  Definition operator_inner { s : Type } (c : contain S s) := list Type.
-  Variable Os : forall s (c : contain S s), list (operator_inner c).
+  Inductive s : Type := mks : forall T, contain S T -> s.
+  Definition operator_inner (s' : s) := list s.
+  Variable Os : forall (s' : s), list (operator_inner s').
     (*variable is just operator with arity nil*)
-  Inductive operator { s : Type } (c : contain S s) := 
-  | op : forall o : operator_inner c, Pos o (Os c) -> operator c.
-  Definition get_arity s (c : contain S s) (ope : operator c) : list Type := 
-    match ope with op l _ => l end.
+  Inductive operator (s' : s) := 
+  | mkop : forall o : operator_inner s', Pos o (Os s') -> operator s'.
+  Definition get_arity s' (ope : operator s') : list s := 
+    match ope with mkop l _ => l end.
+  Definition get_type s' : Type := match s' with mks T _ => T end.
+  Definition get_arity_type s' (op : operator s') := map get_type (get_arity op).
   Inductive AXs : Type -> Type :=
-  | OAXs : forall s (c : contain S s)(op : operator c), 
-      ihlist (fun s' => AXs s') (get_arity op) -> AXs s.
+  | OAXs : forall s' (op : operator s'), 
+      ihlist (fun s' => AXs s') (get_arity_type op) -> AXs s.
   Fixpoint AST_rect (P : forall T, AXs T -> Type)
-  (FO : forall s (c : contain S s)(op : operator c)
-    (l : ihlist (fun s' => AXs s') (get_arity op)), 
-      @ihlist_forall _ (fun t ax => P t ax) (get_arity op) l -> P s (OAXs op l))
+  (FO : forall s' (op : operator s')
+    (l : ihlist (fun s' => AXs s') (get_arity_type op)), 
+      @ihlist_forall _ (fun t ax => P t ax) (get_arity_type op) l -> P s (OAXs op l))
         T (AX : AXs T) : P T AX.
     destruct AX.
     apply FO.
@@ -68,7 +71,7 @@ Section AST.
   Defined.
   Fixpoint AST_size T (ast : AXs T) : nat :=
     match ast with
-    | OAXs _ _ _ il => 1 +
+    | OAXs _ _ il => 1 +
         ((fix ilind t (l : ihlist _ t) : nat := 
           match l with
           | ihnil => 0
@@ -87,48 +90,49 @@ Section AST.
     subst.
     auto.
   Defined.
-  Variable sdec : forall { s s' : Type } (c : contain S s)(c' : contain S s'),
-    { s = s' } + { s <> s' }.
-  Definition adjoin { s : Type } (c : contain S s) (v : operator_inner c) :
-    forall s', contain S s' ->
-      { ls : list (operator_inner c) | 
-        (s = s' -> ls = v :: (Os c)) /\
-        (s' <> s -> ls = Os c) }.
+  Variable sdec : forall s' s'' : s, { s' = s'' } + { s' <> s'' }.
+  Definition adjoin s' (v : operator_inner s') :
+    forall s'',
+      { ls : list (operator_inner s') | 
+        (s' = s'' -> ls = v :: (Os s')) /\
+        (s' <> s'' -> ls = Os s') }.
     intros.
-    destruct (sdec c H).
+    destruct (sdec s' s'').
     subst.
     eauto with *.
-    exists (Os c).
+    exists (Os s').
     intuition.
   Defined.
-  Check list_eq_dec.
-  Definition remove_operator_inner { s : Type } (c : contain S s) (v : operator c) :
-    forall s', contain S s' ->
-      { ls : list (operator_inner c) |
-        (s = s' -> Permutation ((get_arity v) :: ls) (Os c)) /\
-        (s' <> s -> ls = Os c) }.
+  Definition remove_operator_inner s' (v : operator s') :
+    forall s'',
+      { ls : list (operator_inner s'') |
+        (s' = s'' -> Permutation ((get_arity v) :: ls) (Os s')) /\
+        (s' <> s'' -> ls = Os s') }.
     intros.
-    destruct (sdec c H).
+    destruct (sdec s' s'').
     subst.
     destruct v.
     destruct (remove p).
     simpl in *.
     exists x.
     tauto.
-    exists (Os c).
+    exists (Os s').
     intuition.
   Defined.
-  Definition remove_operator { s : Type } (c : contain S s) (v : operator c) : 
-    forall s' (c' : contain S s'), list (operator_inner c') := 
-      fun s' c' => proj1_sig (remove_operator_inner v c').
+  Definition remove_operator s' (v : operator s') : 
+    forall s'', list (operator_inner s'') := 
+      fun s'' => proj1_sig (remove_operator_inner v s'').
+  Definition opdec : forall s' s'' (opl : operator s') (opr : operator s''),
+      { opl ~= opr } + { ~(opl ~= opr) }.
+  Admitted.
 End AST.
 
 Extraction ast_size. (*Testing if AST_rect is useful*)(*should not be defined with AST_size*)
 
-Definition AST_substitute S Os T s sdec (c : contain S s)
-  (op : operator Os c) (ast : AXs Os T)
-    (f : ihlist (fun s' => AXs Os s') (get_arity op) -> 
-      ihlist (fun s' => AXs (remove_operator sdec op) s') (get_arity op))
+Definition AST_substitute S Os T s' sdec
+  (op : @operator S Os s') (ast : AXs Os T)
+    (f : ihlist (fun s' => AXs Os s') (get_arity_type op) -> 
+      ihlist (fun s' => AXs (remove_operator sdec op) s') (get_arity_type op))
   : AXs (remove_operator sdec op) T.
   eapply AST_rect;
   eauto.
@@ -138,12 +142,12 @@ Defined.
 
 Definition subst { S S' } (s : S)(Heq : S ~= S') : {s' : S' | s ~= s' }.
   subst.
-  exists s.
+  exists s0.
   trivial.
 Defined.
 
 Theorem subst_eq : forall S (eq : S ~= S)(s : S), JMeq s (proj1_sig(subst s eq)).
   intros.
-  destruct (subst s eq).
+  destruct (subst s0 eq).
   trivial.
 Qed.
