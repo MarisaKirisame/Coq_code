@@ -125,14 +125,17 @@ End AST.
 
 Extraction ast_size. (*Testing if AST_rect is useful*)(*should not be defined with AST_size*)
 
-(*ihlist (fun s' => AXs s') (get_arity op)*)
-
 Definition AST_substitute S Os T s sdec (c : contain S s)
   (op : operator Os c) (ast : AXs Os T)
     (f : ihlist (fun s' => AXs Os s') (get_arity op) -> 
       ihlist (fun s' => AXs (remove_operator sdec op) s') (get_arity op))
   : AXs (remove_operator sdec op) T.
-  
+  eapply AST_rect;
+  eauto.
+  intros.
+  admit.
+Defined.
+
 Definition subst { S S' } (s : S)(Heq : S ~= S') : {s' : S' | s ~= s' }.
   subst.
   exists s.
