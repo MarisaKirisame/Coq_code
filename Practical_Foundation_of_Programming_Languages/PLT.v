@@ -1,6 +1,6 @@
 Set Implicit Arguments.
 
-Require Import List Program Permutation.
+Require Import List Program Permutation ProofIrrelevance.
 
 Definition set T := T -> Prop.
 
@@ -17,20 +17,72 @@ Inductive ihlist { F : Type -> Type } : list Type -> Type :=
 Implicit Arguments ihlist[].
 Implicit Arguments ihcons[T L F].
 
-Inductive Pos A : A -> list A -> Type :=
-| Pos_fst : forall a l, Pos a (a :: l)
-| Pos_skip : forall a a' l, Pos a' l -> Pos a' (a :: l).
+Inductive pos T (t : T) (lt : list T) : Type :=
+| pos_fst : Some t = hd_error lt -> pos t lt
+| pos_skip : pos t (tail lt) -> pos t lt.
 
-Definition remove T (t : T) (l : list T) (P : Pos t l) :
+Fixpoint pos_lt_contain T (t : T) (p : pos t nil) : False.
+  destruct p.
+  discriminate.
+  simpl in *.
+  eapply pos_lt_contain.
+  eauto.
+Qed.
+
+Fixpoint pos_nat T (t : T) l (p : pos t l) :=
+  match p with
+  | pos_fst _ => 0
+  | pos_skip p' => S (pos_nat p')
+  end.
+
+Definition eq_pos_dec : forall T (t : T) ls (l r : pos t ls), { l = r } + { l <> r }.
+  induction ls.
+  intros.
+  assert(False).
+  eapply pos_lt_contain.
+  eauto.
+  tauto.
+  intros.
+  destruct l, r;
+  simpl in *;
+  try inversion e;
+  subst;
+  try(
+    left;
+    f_equal;
+    apply proof_irrelevance);
+  try(
+    right;
+    discriminate).
+  destruct (IHls l r).
+  subst.
+  tauto.
+  right.
+  intuition.
+  inversion H.
+  subst.
+  tauto.
+Defined.
+
+Definition remove T (t : T) (l : list T) (P : pos t l) :
   { l' : list T | Permutation (t :: l') l }.
-  induction P.
+  induction l.
+  apply pos_lt_contain in P.
+  tauto.
+  destruct P.
+  simpl in *.
+  inversion e.
+  subst.
   exists l.
   trivial.
-  destruct IHP.
+  simpl in *.
+  intuition.
+  destruct X.
   exists (a :: x).
-  symmetry.
-  eapply (@perm_trans _ _ (a :: a' :: x)).
-  auto with *.
+  assert(Permutation (a :: t :: x) (a :: l)).
+  auto.
+  eapply perm_trans in H.
+  eauto.
   constructor.
 Defined.
 
@@ -49,7 +101,7 @@ Section AST.
   Variable Os : forall (s' : s), list (operator_inner s').
     (*variable is just operator with arity nil*)
   Inductive operator (s' : s) := 
-  | mkop : forall o : operator_inner s', Pos o (Os s') -> operator s'.
+  | mkop : forall o : operator_inner s', pos o (Os s') -> operator s'.
   Definition get_arity s' (ope : operator s') : list s := 
     match ope with mkop l _ => l end.
   Definition get_type s' : Type := match s' with mks T _ => T end.
@@ -122,9 +174,35 @@ Section AST.
   Definition remove_operator s' (v : operator s') : 
     forall s'', list (operator_inner s'') := 
       fun s'' => proj1_sig (remove_operator_inner v s'').
-  Definition opdec : forall s' s'' (opl : operator s') (opr : operator s''),
-      { opl ~= opr } + { ~(opl ~= opr) }.
-  Admitted.
+  Theorem mkop_inj : forall s' vl (sl sr : pos vl (Os s')), mkop sl = mkop sr -> sl = sr.
+    inversion 1.
+    apply Eqdep_dec.inj_pair2_eq_dec in H1;
+    try apply list_eq_dec;
+    trivial.
+  Qed.
+  Theorem mkop_inj_eq : forall s' vl vr (sl : pos vl (Os s'))(sr : pos vr (Os s')), 
+    mkop sl ~= mkop sr -> vl = vr.
+    inversion 1.
+    apply Eqdep_dec.inj_pair2_eq_dec in H1.
+    admit.
+    intros.
+  Definition opdec : forall s' (opl opr : operator s'),
+      { opl = opr } + { opl <> opr }.
+    intros.
+    destruct opl, opr;
+    destruct (list_eq_dec sdec o o0);
+    subst;
+    unfold operator_inner in o0;
+    try destruct (eq_pos_dec p p0).
+    subst.
+    tauto.
+    right.
+    intuition.
+    apply mkop_inj in H.
+    tauto.
+    right.
+    intuition.
+    apply mkop_inj in H.
 End AST.
 
 Extraction ast_size. (*Testing if AST_rect is useful*)(*should not be defined with AST_size*)
