@@ -180,12 +180,6 @@ Section AST.
     try apply list_eq_dec;
     trivial.
   Qed.
-  Theorem mkop_inj_eq : forall s' vl vr (sl : pos vl (Os s'))(sr : pos vr (Os s')), 
-    mkop sl ~= mkop sr -> vl = vr.
-    inversion 1.
-    apply Eqdep_dec.inj_pair2_eq_dec in H1.
-    admit.
-    intros.
   Definition opdec : forall s' (opl opr : operator s'),
       { opl = opr } + { opl <> opr }.
     intros.
@@ -202,7 +196,9 @@ Section AST.
     tauto.
     right.
     intuition.
-    apply mkop_inj in H.
+    inversion H.
+    tauto.
+  Defined.
 End AST.
 
 Extraction ast_size. (*Testing if AST_rect is useful*)(*should not be defined with AST_size*)
