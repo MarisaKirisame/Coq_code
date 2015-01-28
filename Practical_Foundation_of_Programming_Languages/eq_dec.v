@@ -1,0 +1,1 @@
+Definition eq_dec T := forall l r : T, { l = r } + { l <> r }.
