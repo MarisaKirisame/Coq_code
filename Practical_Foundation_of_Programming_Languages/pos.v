@@ -224,7 +224,7 @@ Definition update_pos T (t t' : T) (l : list T) (P : pos t l) (P' : pos t' l) :
   trivial.
 Defined.
 
-Definition find_front_pos T (dec : forall l r : T, { l = r } + { l <> r }) (l r : list T) n t
+Definition find_front_pos_inner T (dec : eq_dec T) (l r : list T) n t
   : n = length l -> Permutation (t :: l) r -> pos t r.
   generalize dependent l.
   generalize dependent r.
@@ -232,7 +232,6 @@ Definition find_front_pos T (dec : forall l r : T, { l = r } + { l <> r }) (l r 
   intros.
   destruct l.
   simpl in *.
-  clear H.
   apply Permutation_length_1_inv in H0.
   subst.
   constructor.
@@ -272,6 +271,12 @@ Definition find_front_pos T (dec : forall l r : T, { l = r } + { l <> r }) (l r 
   eauto with *.
 Defined.
 
+Definition find_front_pos T (dec : eq_dec T) (l r : list T) t
+  : Permutation (t :: l) r -> pos t r.
+  eapply find_front_pos_inner;
+  trivial.
+Defined.
+
 Theorem perm_swap_trans : forall T (l : list T) r tl tr,
   Permutation l r -> Permutation (tl :: tr :: l) (tr :: tl :: r).
   intros.
@@ -280,7 +285,7 @@ Theorem perm_swap_trans : forall T (l : list T) r tl tr,
   constructor.
 Qed.
 
-Theorem Permutation_permutation_type : forall T (l : list T) r (P : Permutation l r) n,
+Definition Permutation_permutation_type_inner : forall T (l : list T) r (P : Permutation l r) n,
   eq_dec T -> length l <= n -> permutation_type l r.
   intros.
   generalize dependent r.
@@ -402,14 +407,20 @@ Theorem Permutation_permutation_type : forall T (l : list T) r (P : Permutation 
   trivial.
 Defined.
 
-Definition Permutation_pos_find T (dec : forall l r : T, { l = r } + { l <> r })
+Theorem Permutation_permutation_type : forall T (l : list T) r (P : Permutation l r),
+  eq_dec T -> permutation_type l r.
+  intros.
+  eapply Permutation_permutation_type_inner;
+  trivial.
+Defined.
+
+Definition Permutation_pos_find_inner T (dec : eq_dec T)
   t n (l r : list T) (p : pos t l) (P : Permutation l r) : n = length r -> pos t r.
   generalize dependent r.
   generalize dependent l.
   induction n.
   intros.
   destruct l.
-  simpl in *.
   apply pos_lt_contain in p.
   tauto.
   destruct r.
@@ -420,23 +431,98 @@ Definition Permutation_pos_find T (dec : forall l r : T, { l = r } + { l <> r })
   intros.
   destruct r.
   discriminate.
-  simpl in *.
-  inversion H.
-  subst.
-  clear H.
-  destruct l.
-  apply pos_lt_contain in p.
-  tauto.
-  destruct (bring_to_front dec p).
+  invc H.
+  symmetry in P.
+  destruct (bring_to_front dec t0 l).
+  apply pos_In.
+  eapply find_front_pos.
+  trivial.
+  eauto.
   intuition.
-  destruct x.
+  destruct x;
+  invc H0.
+  destruct l.
+  apply Permutation_length in P.
   discriminate.
-  simpl in *.
-  inversion H0.
+  destruct (dec t0 t).
+  subst.
+  constructor.
+  trivial.
+  assert (Permutation (t0 :: r) (t0 :: x)).
+  eapply perm_trans.
+  exact P.
+  trivial.
+  apply Permutation_cons_inv in H0.
+  destruct (dec t0 t1).
   subst.
   destruct p.
   simpl in *.
-  inversion e.
-  subst.
-  admit.
+  invc e.
+  tauto.
   simpl in *.
+  apply pos_skip.
+  simpl in *.
+  eapply IHn.
+  eauto.
+  apply Permutation_cons_inv in P.
+  apply Permutation_cons_inv in H.
+  auto with *.
+  trivial.
+  destruct (dec t t1).
+  subst.
+  symmetry in P.
+  apply find_front_pos in P;
+  trivial.
+  destruct p.
+  simpl in *.
+  invc e.
+  tauto.
+  simpl in *.
+  apply pos_skip.
+  simpl in *.
+  destruct (bring_to_front dec t1 r).
+  assert (In t1 (t0 :: r)).
+  eapply Permutation_in.
+  symmetry.
+  exact P.
+  simpl in *.
+  tauto.
+  destruct H1.
+  subst.
+  tauto.
+  trivial.
+  intuition.
+  destruct x0.
+  discriminate.
+  invc H2.
+  assert (Permutation (t1 :: t0 :: x0) (t1 :: l)).
+  apply (@perm_trans _ _ (t0 :: t1 :: x0)).
+  constructor.
+  apply (@perm_trans _ _ (t0 :: r));
+  auto with *.
+  apply Permutation_cons_inv in H2.
+  assert (pos t (t0 :: x0)).
+  eapply IHn.
+  exact p.
+  auto with *.
+  simpl in *.
+  apply Permutation_length in H1.
+  trivial.
+  destruct H3.
+  invc e.
+  tauto.
+  simpl in *.
+  assert (pos t (t1 :: x0)).
+  apply pos_skip.
+  trivial.
+  eapply IHn.
+  exact H4.
+  auto with *.
+  trivial.
+Defined.
+
+Definition Permutation_pos_find T (dec : eq_dec T)
+  t (l r : list T) (p : pos t l) (P : Permutation l r) : pos t r.
+  eapply Permutation_pos_find_inner;
+  eauto.
+Defined.
