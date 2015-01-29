@@ -15,3 +15,12 @@ Inductive hlist_forall (F : Type -> Type) { P : forall T, F T -> Type } :
 
 Implicit Arguments hlist_forall[F].
 
+Definition hmap { F : Type -> Type } { M : Type -> Type } { MF : forall T, F T -> M (F T) }
+  (lt : list Type)(hl : hlist F lt) : 
+    hlist (fun T => M (F T)) lt.
+  induction hl;
+  constructor;
+  auto.
+Defined.
+
+Extraction hmap.
