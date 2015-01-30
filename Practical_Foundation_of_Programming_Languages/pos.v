@@ -39,6 +39,29 @@ Fixpoint pos_nat T (t : T) l (p : pos t l) :=
   | pos_skip p' => S (pos_nat p')
   end.
 
+Definition pos_before T (t : T) l (p : pos t l) := firstn (pos_nat p) l.
+Definition pos_after T (t : T) l (p : pos t l) := skipn (S (pos_nat p)) l.
+
+Theorem pos_before_pos_after : forall T (t : T) lt (p : pos t lt),
+  pos_before p ++ [t] ++ pos_after p = lt.
+  induction p.
+  destruct lt.
+  discriminate.
+  inversion e.
+  subst.
+  trivial.
+  destruct lt.
+  simpl in *.
+  assert (False).
+  clear IHp.
+  apply pos_lt_contain in p.
+  trivial.
+  tauto.
+  simpl in *.
+  f_equal.
+  trivial.
+Qed.
+
 Definition eq_pos_dec : forall T (t : T) ls, eq_dec (pos t ls).
   intros.
   unfold eq_dec.

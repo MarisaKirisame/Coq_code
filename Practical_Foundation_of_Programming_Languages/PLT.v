@@ -3,6 +3,7 @@ Set Implicit Arguments.
 Require Import List Program Permutation ProofIrrelevance.
 
 Load pos.
+Load hlist.
 
 Definition set T := T -> Prop.
 
@@ -16,7 +17,7 @@ Section AST.
   Variable S : set Type.
   Inductive s : Type := mks : forall T, contain S T -> s.
   Definition operator_inner (s' : s) := list s.
-  Variable sdec : forall s' s'' : s, { s' = s'' } + { s' <> s'' }.
+  Variable sdec : eq_dec s.
   Section OS_no_change.
     Variable Os : forall (s' : s), list (operator_inner s').
       (*variable is just operator with arity nil*)
@@ -28,15 +29,15 @@ Section AST.
     Definition get_arity_type s' (op : operator s') := map get_type (get_arity op).
     Inductive AXs : Type -> Type :=
     | OAXs : forall s' (op : operator s'), 
-        ihlist (fun s' => AXs s') (get_arity_type op) -> AXs s.
+        hlist (fun s' => AXs s') (get_arity_type op) -> AXs s.
     Fixpoint AST_rect (P : forall T, AXs T -> Type)
       (FO : forall s' (op : operator s')
-        (l : ihlist (fun s' => AXs s') (get_arity_type op)), 
-          @ihlist_forall _ (fun t ax => P t ax) (get_arity_type op) l -> P s (OAXs op l))
+        (l : hlist (fun s' => AXs s') (get_arity_type op)), 
+          @hlist_forall _ (fun t ax => P t ax) (get_arity_type op) l -> P s (OAXs op l))
             T (AX : AXs T) : P T AX.
       destruct AX.
       apply FO.
-      induction i;
+      induction h;
       constructor;
       try apply AST_rect;
       trivial.
@@ -44,10 +45,10 @@ Section AST.
     Fixpoint AST_size T (ast : AXs T) : nat :=
       match ast with
       | OAXs _ _ il => 1 +
-          ((fix ilind t (l : ihlist _ t) : nat := 
+          ((fix ilind t (l : hlist _ t) : nat := 
             match l with
-            | ihnil => 0
-            | ihcons _ _ a l' => AST_size a + ilind _ l'
+            | hnil => 0
+            | hcons _ _ a l' => AST_size a + ilind _ l'
             end) _ il)
       end.
     Definition ast_size : forall T (ast : AXs T), { n | n = AST_size ast }.
@@ -99,10 +100,10 @@ Section AST.
       try apply list_eq_dec;
       trivial.
     Qed.
-    Definition opdec : forall s' (opl opr : operator s'),
-      { opl = opr } + { opl <> opr }.
+    Definition opdec : forall s', eq_dec (operator s').
+      unfold eq_dec.
       intros.
-      destruct opl, opr;
+      destruct l, r;
       destruct (list_eq_dec sdec o o0);
       subst;
       unfold operator_inner in o0;
@@ -115,16 +116,59 @@ Section AST.
       tauto.
       right.
       intuition.
-      inversion H.
+      invc H.
       tauto.
     Defined.
   End OS_no_change.
+  Global Arguments mkop { Os } { s' } { o } _.
+
   Definition update_operator (s' : s) Os (op op' : operator Os s') : op <> op' -> 
     { newop : operator (remove_operator op') s' | get_arity op = get_arity newop }.
     intros.
-    remember (mkop).
+    assert (pos (get_arity op) (remove_operator op' s')).
+    unfold remove_operator.
+    destruct (remove_operator_inner op' s').
+    simpl in *.
+    intuition.
+    clear H1.
     destruct op.
-    
+    simpl in *.
+    assert (pos o (get_arity op' :: x)).
+    eapply Permutation_pos_find;
+    eauto with *.
+    unfold eq_dec.
+    apply list_eq_dec.
+    trivial.
+    destruct op'.
+    simpl in *.
+    destruct H0.
+    simpl in *.
+    invc e.
+    assert (p <> p0).
+    destruct (eq_pos_dec p p0);
+    subst;
+    tauto.
+    clear H.
+    assert (eq_dec (operator_inner s')).
+    admit (**).
+    destruct (bring_to_front X o0 (Os s')).
+    apply pos_In.
+    exact p0.
+    intuition.
+    destruct x0;
+    invc H1.
+    eapply Permutation_pos_find.
+    unfold eq_dec.
+    apply list_eq_dec.
+    trivial.
+    (*bring p0 or p to front, use the remaining*)
+    admit.
+    trivial.
+    exists (mkop H0).
+    trivial.
+  Defined.
+
+End AST.
 Extraction ast_size. (*Testing if AST_rect is useful*)(*should not be defined with AST_size*)
 
 Definition AST_substitute S Os T s' sdec
