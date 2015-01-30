@@ -149,7 +149,8 @@ Definition remove T (t : T) (l : list T) (P : pos t l) :
   constructor.
 Defined.
 
-Definition find_pos T (t : T) (l l' : list T) (P : pos t l) : permutation_type l l' -> pos t l'.
+Definition find_pos T (t : T) (l l' : list T) (P : pos t l) :
+  permutation_type l l' -> pos t l'.
   induction 1.
   trivial.
   destruct P.
@@ -308,8 +309,9 @@ Theorem perm_swap_trans : forall T (l : list T) r tl tr,
   constructor.
 Qed.
 
-Definition Permutation_permutation_type_inner : forall T (l : list T) r (P : Permutation l r) n,
-  eq_dec T -> length l <= n -> permutation_type l r.
+Definition Permutation_permutation_type_inner : 
+  forall T (l : list T) r (P : Permutation l r) n,
+    eq_dec T -> length l <= n -> permutation_type l r.
   intros.
   generalize dependent r.
   generalize dependent l.
@@ -438,14 +440,17 @@ Theorem Permutation_permutation_type : forall T (l : list T) r (P : Permutation 
 Defined.
 
 Definition split_list T (dec : eq_dec T) (t : T) l : In t l -> 
-  { l' : (list T * list T) | l = (fst l') ++ [t] ++ (snd l') /\ count_occ dec (fst l') t = 0 }.
+  { l' : (list T * list T) | 
+      l = (fst l') ++ [t] ++ (snd l') /\ count_occ dec (fst l') t = 0 }.
   induction l.
   simpl in *.
   tauto.
   intros.
   destruct (dec t a).
   subst.
-  admit.
+  exists (@nil T, l).
+  simpl in *.
+  tauto.
   assert (In t l).
   destruct H.
   subst.
@@ -468,7 +473,68 @@ Definition split_list T (dec : eq_dec T) (t : T) l : In t l ->
   trivial.
 Defined.
 
-Definition pos_find_inner T (dec : eq_dec T)
+Theorem occ_split : forall T l r (dec : eq_dec T) t,
+  count_occ dec (l ++ r) t = count_occ dec l t + count_occ dec r t.
+  intros.
+  induction l.
+  trivial.
+  simpl in *.
+  destruct (dec a t).
+  subst.
+  simpl in *.
+  auto.
+  trivial.
+Qed.
+
+Definition pos_extend_right T (l r : list T) t (p : pos t l) : 
+  { p' : pos t (l ++ r) | pos_before p' = pos_before p }.
+  induction l.
+  assert(False).
+  apply pos_lt_contain in p.
+  trivial.
+  tauto.
+  destruct p.
+  simpl in *.
+  inversion e.
+  subst.
+  exists (pos_fst (a :: l ++ r) eq_refl).
+  trivial.
+  simpl in *.
+  specialize (IHl p).
+  destruct IHl.
+  exists (pos_skip (a :: l ++ r) x).
+  unfold pos_before in *.
+  simpl in *.
+  f_equal.
+  trivial.
+Defined.
+
+Definition pos_extend_left T (l r : list T) t (p : pos t r) : 
+  { p' : pos t (l ++ r) | pos_before p' = l ++ pos_before p }.
+  induction l.
+  simpl in *.
+  eauto.
+  destruct IHl.
+  exists (pos_skip ((a :: l) ++ r) x).
+  simpl in *.
+  unfold pos_before in *.
+  simpl in *.
+  f_equal.
+  trivial.
+Defined.
+
+Theorem count_occ_In : forall T dec (t : T) l, count_occ dec l t > 1 -> In t l.
+  induction l;
+  intros;
+  simpl in *.
+  omega.
+  destruct (dec a t);
+  subst;
+  simpl in *;
+  tauto.
+Qed.
+
+Definition pos_find T (dec : eq_dec T)
   t (l r : list T) (p : pos t l) : count_occ dec (pos_before p) t < count_occ dec r t -> 
   { p' : pos t r | count_occ dec (pos_before p') t = count_occ dec (pos_before p) t }.
   intros.
@@ -507,7 +573,40 @@ Definition pos_find_inner T (dec : eq_dec T)
   destruct (dec a a).
   clear e.
   unfold pos_before in *.
-  admit (*split *r* into two part, with the first part containing one *a**).
+  destruct (split_list dec a r).
+  eapply count_occ_In.
+  eauto with *.
+  simpl in *.
+  intuition.
+  subst.
+  destruct x.
+  simpl in *.
+  replace (count_occ dec (l0 ++ a :: l1) a) with (S (count_occ dec (l0 ++ l1) a)) in *.
+  assert ((count_occ dec (firstn (pos_nat p) l) a) < (count_occ dec (l0 ++ l1) a)).
+  omega.
+  clear H.
+  rewrite occ_split in H0.
+  rewrite H1 in H0.
+  simpl in *.
+  destruct (IHl p l1).
+  trivial.
+  replace (l0 ++ a :: l1) with ((l0 ++ [a]) ++ l1) in *.
+  destruct (pos_extend_left (l0 ++ [a]) x).
+  exists x0.
+  unfold pos_before in *.
+  rewrite e0 in *.
+  repeat rewrite occ_split in *.
+  simpl in *.
+  destruct (dec a a).
+  omega.
+  tauto.
+  rewrite <- app_assoc.
+  trivial.
+  repeat rewrite occ_split.
+  simpl in *.
+  destruct (dec a a).
+  trivial.
+  tauto.
   tauto.
   destruct p.
   inversion e.
@@ -521,10 +620,4 @@ Definition pos_find_inner T (dec : eq_dec T)
   unfold pos_before in *.
   apply IHl.
   trivial.
-Defined.
-
-Definition Permutation_pos_find T (dec : eq_dec T)
-  t (l r : list T) (p : pos t l) (P : Permutation l r) : pos t r.
-  eapply Permutation_pos_find_inner;
-  eauto.
 Defined.
