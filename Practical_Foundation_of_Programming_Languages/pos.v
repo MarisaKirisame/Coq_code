@@ -437,110 +437,89 @@ Theorem Permutation_permutation_type : forall T (l : list T) r (P : Permutation 
   trivial.
 Defined.
 
-Definition Permutation_pos_find_inner T (dec : eq_dec T)
-  t n (l r : list T) (p : pos t l) (P : Permutation l r) : n = length r -> pos t r.
+Definition split_list T (dec : eq_dec T) (t : T) l : In t l -> 
+  { l' : (list T * list T) | l = (fst l') ++ [t] ++ (snd l') /\ count_occ dec (fst l') t = 0 }.
+  induction l.
+  simpl in *.
+  tauto.
+  intros.
+  destruct (dec t a).
+  subst.
+  admit.
+  assert (In t l).
+  destruct H.
+  subst.
+  tauto.
+  trivial.
+  clear H.
+  intuition.
+  destruct X.
+  simpl in *.
+  intuition.
+  subst.
+  destruct x.
+  simpl in *.
+  exists ((a :: l), l0).
+  simpl in *.
+  intuition.
+  destruct (dec a t).
+  subst.
+  tauto.
+  trivial.
+Defined.
+
+Definition pos_find_inner T (dec : eq_dec T)
+  t (l r : list T) (p : pos t l) : count_occ dec (pos_before p) t < count_occ dec r t -> 
+  { p' : pos t r | count_occ dec (pos_before p') t = count_occ dec (pos_before p) t }.
+  intros.
   generalize dependent r.
   generalize dependent l.
-  induction n.
+  induction l.
   intros.
-  destruct l.
+  assert(False).
+  clear H.
   apply pos_lt_contain in p.
+  trivial.
   tauto.
-  destruct r.
-  symmetry in P.
-  apply Permutation_nil in P.
-  discriminate.
-  discriminate.
   intros.
-  destruct r.
-  discriminate.
-  invc H.
-  symmetry in P.
-  destruct (bring_to_front dec t0 l).
-  apply pos_In.
-  eapply find_front_pos.
-  trivial.
-  eauto.
-  intuition.
-  destruct x;
-  invc H0.
-  destruct l.
-  apply Permutation_length in P.
-  discriminate.
-  destruct (dec t0 t).
-  subst.
-  constructor.
-  trivial.
-  assert (Permutation (t0 :: r) (t0 :: x)).
-  eapply perm_trans.
-  exact P.
-  trivial.
-  apply Permutation_cons_inv in H0.
-  destruct (dec t0 t1).
+  destruct (dec t a).
   subst.
   destruct p.
   simpl in *.
-  invc e.
-  tauto.
+  clear e.
+  clear IHl.
+  induction r;
   simpl in *.
-  apply pos_skip.
-  simpl in *.
-  eapply IHn.
-  eauto.
-  apply Permutation_cons_inv in P.
-  apply Permutation_cons_inv in H.
-  auto with *.
-  trivial.
-  destruct (dec t t1).
+  omega.
+  destruct (dec a0 a).
   subst.
-  symmetry in P.
-  apply find_front_pos in P;
-  trivial.
-  destruct p.
-  simpl in *.
-  invc e.
-  tauto.
-  simpl in *.
-  apply pos_skip.
-  simpl in *.
-  destruct (bring_to_front dec t1 r).
-  assert (In t1 (t0 :: r)).
-  eapply Permutation_in.
-  symmetry.
-  exact P.
-  simpl in *.
-  tauto.
-  destruct H1.
-  subst.
-  tauto.
+  exists (@pos_fst _ a (a :: r) eq_refl).
   trivial.
   intuition.
-  destruct x0.
-  discriminate.
-  invc H2.
-  assert (Permutation (t1 :: t0 :: x0) (t1 :: l)).
-  apply (@perm_trans _ _ (t0 :: t1 :: x0)).
-  constructor.
-  apply (@perm_trans _ _ (t0 :: r));
-  auto with *.
-  apply Permutation_cons_inv in H2.
-  assert (pos t (t0 :: x0)).
-  eapply IHn.
-  exact p.
-  auto with *.
+  destruct H0.
+  exists (pos_skip (a0 :: r) x).
   simpl in *.
-  apply Permutation_length in H1.
+  destruct (dec a0 a).
+  subst.
+  tauto.
   trivial.
-  destruct H3.
-  invc e.
+  simpl in *.
+  destruct (dec a a).
+  clear e.
+  unfold pos_before in *.
+  admit (*split *r* into two part, with the first part containing one *a**).
+  tauto.
+  destruct p.
+  inversion e.
+  subst.
   tauto.
   simpl in *.
-  assert (pos t (t1 :: x0)).
-  apply pos_skip.
-  trivial.
-  eapply IHn.
-  exact H4.
-  auto with *.
+  destruct (dec a t).
+  subst.
+  tauto.
+  clear n0.
+  unfold pos_before in *.
+  apply IHl.
   trivial.
 Defined.
 

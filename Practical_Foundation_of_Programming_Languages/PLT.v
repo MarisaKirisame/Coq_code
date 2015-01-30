@@ -157,15 +157,6 @@ Section AST.
     intuition.
     destruct x0;
     invc H1.
-    eapply Permutation_pos_find.
-    unfold eq_dec.
-    apply list_eq_dec.
-    trivial.
-    (*bring p0 or p to front, use the remaining*)
-    admit.
-    trivial.
-    exists (mkop H0).
-    trivial.
   Defined.
 
 End AST.
