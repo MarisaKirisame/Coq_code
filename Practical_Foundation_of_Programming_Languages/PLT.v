@@ -5,6 +5,20 @@ Require Import List Program Permutation ProofIrrelevance.
 Load pos.
 Load hlist.
 
+Theorem Permutation_occ : forall T (l : list T) r dec,
+  Permutation l r -> forall t, count_occ dec r t = count_occ dec l t.
+  intros.
+  induction H;
+  trivial;
+  simpl in *;
+  try destruct (dec x t);
+  subst;
+  auto.
+  destruct (dec y t);
+  trivial.
+  omega.
+Qed.
+
 Definition set T := T -> Prop.
 
 Definition contain { T } (S : set T) R := S R.
@@ -122,8 +136,18 @@ Section AST.
   End OS_no_change.
   Global Arguments mkop { Os } { s' } { o } _.
 
+  Definition loidec : forall s', eq_dec (list (operator_inner s')).
+    intros.
+    unfold eq_dec in *.
+    unfold operator_inner.
+    intros.
+    repeat apply list_eq_dec.
+    trivial.
+  Defined.
+
   Definition update_operator (s' : s) Os (op op' : operator Os s') : op <> op' -> 
     { newop : operator (remove_operator op') s' | get_arity op = get_arity newop }.
+      (*match only the first one?*)
     intros.
     assert (pos (get_arity op) (remove_operator op' s')).
     unfold remove_operator.
@@ -133,30 +157,25 @@ Section AST.
     clear H1.
     destruct op.
     simpl in *.
-    assert (pos o (get_arity op' :: x)).
-    eapply Permutation_pos_find;
-    eauto with *.
-    unfold eq_dec.
-    apply list_eq_dec.
+    assert(
+      forall t,
+        count_occ (list_eq_dec sdec) (Os s') t =
+        count_occ (list_eq_dec sdec) (get_arity op' :: x) t).
+    eapply Permutation_occ.
     trivial.
-    destruct op'.
-    simpl in *.
-    destruct H0.
-    simpl in *.
-    invc e.
-    assert (p <> p0).
-    destruct (eq_pos_dec p p0);
-    subst;
-    tauto.
-    clear H.
-    assert (eq_dec (operator_inner s')).
+    assert (pos o (get_arity op' :: x)).
+    eapply (pos_find _ _ p).
+    assert (pos_before p ++ [o] ++ pos_after p = (Os s')).
+    apply pos_before_pos_after.
+    repeat rewrite <- H1 in *.
+    rewrite <- H0 in *.
     admit (**).
-    destruct (bring_to_front X o0 (Os s')).
-    apply pos_In.
-    exact p0.
-    intuition.
-    destruct x0;
-    invc H1.
+    destruct H1.
+    invc e.
+    admit (*?*).
+    trivial.
+    exists (mkop H0).
+    trivial.
   Defined.
 
 End AST.

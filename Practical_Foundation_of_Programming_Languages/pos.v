@@ -5,7 +5,6 @@ Load permutation_type.
 Load eq_dec.
 
 Set Implicit Arguments.
-
 Inductive pos T (t : T) (lt : list T) : Type :=
 | pos_fst : Some t = hd_error lt -> pos t lt
 | pos_skip : pos t (tail lt) -> pos t lt.
@@ -621,3 +620,28 @@ Definition pos_find T (dec : eq_dec T)
   apply IHl.
   trivial.
 Defined.
+
+Definition pos_remove_eq :
+  forall T (t : T) l (p p' : pos t l), p <> p' -> pos_nat p <> pos_nat p'.
+  intros.
+  induction l.
+  admit.
+  destruct p, p';
+  simpl in *;
+  try discriminate.
+  inversion e.
+  subst.
+  intuition.
+  apply H.
+  f_equal.
+  admit.
+  intuition.
+  invc H0.
+  specialize (IHl p p').
+  assert(p <> p').
+  intuition.
+  subst.
+  tauto.
+  tauto.
+Defined.
+
