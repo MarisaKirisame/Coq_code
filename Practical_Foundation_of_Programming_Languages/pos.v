@@ -1,10 +1,8 @@
 Require Import Program List Permutation Omega.
-
-Load tactic.
-Load permutation_type.
-Load eq_dec.
+Require Import tactic permutation_type eq_dec count.
 
 Set Implicit Arguments.
+
 Inductive pos T (t : T) (lt : list T) : Type :=
 | pos_fst : Some t = hd_error lt -> pos t lt
 | pos_skip : pos t (tail lt) -> pos t lt.
@@ -127,124 +125,117 @@ Definition In_pos : forall T (t : T) (dec : eq_dec T)
 Defined.
 
 Definition remove T (t : T) (l : list T) (P : pos t l) :
-  { l' : list T | Permutation (t :: l') l }.
+  { ret : (list T) * (list T) | fst ret ++ t :: snd ret = l }.
   induction l.
   apply pos_lt_contain in P.
   tauto.
   destruct P.
   simpl in *.
-  inversion e.
-  subst.
-  exists l.
+  invc e.
+  exists (@nil T, l).
   trivial.
   simpl in *.
   intuition.
   destruct X.
-  exists (a :: x).
-  assert(Permutation (a :: t :: x) (a :: l)).
-  auto.
-  eapply perm_trans in H.
-  eauto.
-  constructor.
+  destruct x.
+  subst.
+  simpl in *.
+  exists (a :: l0, l1).
+  trivial.
 Defined.
 
-Definition find_pos T (t : T) (l l' : list T) (P : pos t l) :
-  permutation_type l l' -> pos t l'.
+Definition remove_join T (t : T) l (P : pos t l) := fst (` (remove P)) ++ snd (` (remove P)).
+
+Definition find_pos T (t : T) dec (l l' : list T) (P : pos t l) :
+  permutation_type l l' ->
+    { p : pos t l' | count_occ dec (pos_before p) t = count_occ dec (pos_before P) t }.
   induction 1.
+  assert(False).
+  apply pos_lt_contain in P.
   trivial.
+  tauto.
   destruct P.
   simpl in *.
-  inversion e.
+  invc e.
+  exists (@pos_fst _ x (x :: l') eq_refl).
+  trivial.
+  simpl in *.
+  destruct (dec x x).
+  specialize (IHX P).
+  destruct IHX.
+  exists (pos_skip (x :: l') x0).
+  simpl in *.
+  destruct (dec x t).
+  auto.
+  tauto.
+  tauto.
+  destruct P.
+  simpl in *.
+  invc e.
+  destruct (dec x y).
   subst.
-  constructor.
+  exists (@pos_fst _ y (y :: y :: l) eq_refl).
   trivial.
+  exists (pos_skip (x :: y :: l) (@pos_fst _ y (y :: l) eq_refl)).
   simpl in *.
-  intuition.
-  apply pos_skip.
-  trivial.
-  inversion P.
-  simpl in *.
-  inversion H.
+  destruct (dec x y).
   subst.
-  apply pos_skip.
-  simpl in *.
-  constructor.
+  tauto.
   trivial.
   simpl in *.
-  inversion H.
-  inversion H0.
+  destruct P.
+  simpl in *.
+  invc e.
+  destruct (dec y x).
   subst.
+  exists (pos_skip (x :: x :: l) (@pos_fst _ x (x :: l) eq_refl)).
   simpl in *.
-  constructor.
-  trivial.
-  simpl in *.
-  apply pos_skip.
-  apply pos_skip.
+  destruct (dec x x).
   trivial.
   tauto.
-Defined.
-
-Definition bring_to_front { T } 
-  (dec : eq_dec T) e : 
-    forall l : list T, In e l -> { lr | Permutation l lr /\ hd_error lr = value e }.
-  induction l.
-  simpl in *.
-  tauto.
-  intros.
-  destruct (dec e a).
-  subst.
-  exists (a :: l).
-  auto.
-  assert(In e l).
-  simpl in *.
-  intuition.
-  clear H.
-  intuition.
-  invc X.
-  intuition.
-  destruct x.
-  discriminate.
-  simpl in *.
-  invc H2.
-  exists (e :: a :: x).
-  split.
-  assert (Permutation (a :: l) (a :: e :: x)).
-  auto.
-  eapply perm_trans.
-  exact H.
-  constructor.
+  exists (@pos_fst _ x (x :: y :: l) eq_refl).
   trivial.
+  simpl in *.
+  exists (pos_skip (x :: y :: l) (pos_skip (y :: l) P)).
+  simpl in *.
+  destruct (dec y t);
+  destruct (dec x t);
+  subst;
+  trivial.
+  specialize (IHX1 P).
+  destruct IHX1.
+  specialize (IHX2 x).
+  destruct IHX2.
+  exists x0.
+  omega.
 Defined.
 
 Definition update_pos T (t t' : T) (l : list T) (P : pos t l) (P' : pos t' l) :
-  t <> t' -> pos t' (` (remove P)).
+  t <> t' -> pos t' (remove_join P).
+  intros.
   induction l.
   apply pos_lt_contain in P'.
   tauto.
-  intros.
   destruct P, P';
+  simpl in *;
   try inversion e;
   try inversion e0;
-  subst.
-  tauto.
-  simpl in P'.
-  simpl in e.
-  destruct (remove (pos_fst (a :: l) e)).
+  subst;
+  try tauto;
+  unfold remove_join in *;
+  destruct remove;
+  destruct x;
   simpl in *.
-  apply Permutation_cons_inv in p.
-  admit.
-  simpl in *.
-  destruct (remove P).
-  simpl in *.
-  constructor.
+  destruct l0;
+  invc e0.
   trivial.
+  assert (pos a (l0 ++ a :: l1)).
+  admit (**).
+  specialize (IHl H0 P').
+  destruct remove.
   simpl in *.
-  remember (IHl P P' H).
-  clear Heqp.
-  destruct (remove P).
-  simpl in *.
-  apply pos_skip.
-  trivial.
+  destruct x.
+  simpl in *.  
 Defined.
 
 Definition find_front_pos_inner T (dec : eq_dec T) (l r : list T) n t
@@ -307,136 +298,6 @@ Theorem perm_swap_trans : forall T (l : list T) r tl tr,
   auto.
   constructor.
 Qed.
-
-Definition Permutation_permutation_type_inner : 
-  forall T (l : list T) r (P : Permutation l r) n,
-    eq_dec T -> length l <= n -> permutation_type l r.
-  intros.
-  generalize dependent r.
-  generalize dependent l.
-  induction n;
-  intros.
-  destruct l.
-  apply Permutation_nil in P.
-  subst.
-  constructor.
-  simpl in *.
-  omega.
-  destruct l.
-  apply Permutation_nil in P.
-  subst.
-  constructor.
-  simpl in *.
-  assert (length l <= n).
-  omega.
-  clear H.
-  destruct (bring_to_front X t r).
-  apply (Permutation_in t P).
-  simpl in *.
-  tauto.
-  intuition.
-  destruct x.
-  discriminate.
-  simpl in *.
-  invc H1.
-  assert(permutation_type l x).
-  apply IHn.
-  trivial.
-  assert (Permutation (t :: l) (t :: x)).
-  eapply perm_trans.
-  exact P.
-  trivial.
-  apply Permutation_cons_inv in H1.
-  trivial.
-  destruct r.
-  symmetry in P.
-  apply Permutation_nil in P.
-  discriminate.
-  destruct (X t t0).
-  subst.
-  constructor.
-  eapply IHn.
-  trivial.
-  apply Permutation_cons_inv in P.
-  trivial.
-  destruct (bring_to_front X t0 l).
-  assert (In t0 (t :: l)).
-  eapply Permutation_in.
-  symmetry.
-  exact P.
-  simpl in *.
-  tauto.
-  destruct H1.
-  subst.
-  tauto.
-  trivial.
-  intuition.
-  destruct x0.
-  discriminate.
-  invc H2.
-  destruct (bring_to_front X t r).
-  assert (In t (t0 :: r)).
-  eapply Permutation_in.
-  symmetry.
-  exact H.
-  simpl in *.
-  tauto.
-  destruct H2.
-  subst.
-  tauto.
-  trivial.
-  intuition.
-  destruct x1.
-  discriminate.
-  invc H3.
-  assert (Permutation (t :: t0 :: x0) (t0 :: t :: x1)).
-  apply (@perm_trans _ _ (t :: l)).
-  auto with *.
-  apply (@perm_trans _ _ (t0 :: r)).
-  trivial.
-  auto.
-  assert (permutation_type x0 x1).
-  apply IHn.
-  apply Permutation_length in H1.
-  simpl in *.
-  omega.
-  trivial.
-  eapply (@perm_trans _ (t0 :: t :: x0)) in H3.
-  repeat apply Permutation_cons_inv in H3.
-  trivial.
-  constructor.
-  assert (permutation_type (t :: l) (t :: t0 :: x0)).
-  constructor.
-  auto.
-  eapply perm_type_trans.
-  exact X2.
-  assert (permutation_type (t0 :: t :: x1) (t0 :: r)).
-  constructor.
-  apply IHn.
-  simpl in *.
-  apply Permutation_length in H2.
-  apply Permutation_length in P.
-  simpl in *.
-  omega.
-  auto with *.
-  eapply perm_type_trans.
-  Focus 2.
-  exact X3.
-  assert (permutation_type (t :: t0 :: x0) (t0 :: t :: x0)).
-  constructor.
-  eapply perm_type_trans.
-  exact X4.
-  constructor.
-  constructor.
-  trivial.
-Defined.
-
-Theorem Permutation_permutation_type : forall T (l : list T) r (P : Permutation l r),
-  eq_dec T -> permutation_type l r.
-  intros.
-  eapply Permutation_permutation_type_inner;
-  trivial.
-Defined.
 
 Definition split_list T (dec : eq_dec T) (t : T) l : In t l -> 
   { l' : (list T * list T) | 
