@@ -2,8 +2,7 @@ Set Implicit Arguments.
 
 Require Import List Program Permutation ProofIrrelevance.
 
-Load pos.
-Load hlist.
+Require Import hlist pos.
 
 Theorem Permutation_occ : forall T (l : list T) r dec,
   Permutation l r -> forall t, count_occ dec r t = count_occ dec l t.

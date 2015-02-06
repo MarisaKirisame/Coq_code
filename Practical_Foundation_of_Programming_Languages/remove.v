@@ -1,9 +1,9 @@
-Require Import Program List.
-Require Import count tactic pos permutation_type eq_dec.
+Require Import Permutation Program List.
+Require Import bring_to_front count tactic pos permutation_type eq_dec.
 
 Set Implicit Arguments.
 
-Definition split_list T (dec : eq_dec T) (t : T) l : In t l -> 
+Definition remove_fst T (dec : eq_dec T) (t : T) l : In t l -> 
   { l' : (list T * list T) | 
       l = (fst l') ++ [t] ++ (snd l') /\ count_occ dec (fst l') t = 0 }.
   induction l.
@@ -40,16 +40,14 @@ Definition pos_extend_right T (l r : list T) t (p : pos t l) :
   { p' : pos t (l ++ r) | pos_before p' = pos_before p }.
   induction l.
   eauto with *.
-  destruct p.
+  dependent induction p.
   simpl in *.
-  inversion e.
-  subst.
-  exists (pos_fst (a :: l ++ r) eq_refl).
+  exists (pos_fst a (l ++ r)).
   trivial.
-  simpl in *.
   specialize (IHl p).
   destruct IHl.
-  exists (pos_skip (a :: l ++ r) x).
+  simpl in *.
+  exists (pos_skip a x).
   unfold pos_before in *.
   simpl in *.
   f_equal.
@@ -62,8 +60,8 @@ Definition pos_extend_left T (l r : list T) t (p : pos t r) :
   simpl in *.
   eauto.
   destruct IHl.
-  exists (pos_skip ((a :: l) ++ r) x).
   simpl in *.
+  exists (pos_skip a x).
   unfold pos_before in *.
   simpl in *.
   f_equal.
@@ -79,6 +77,15 @@ Theorem count_occ_split : forall T dec (t : T) l r,
   apply count_split.
 Qed.
 
+Theorem count_occ_lt_In : forall T dec (t : T) l, In t l <-> count_occ dec l t > 0.
+  intuition;
+  induction l;
+  simpl in *;
+  try destruct (dec a t);
+  subst;
+  (omega||tauto).
+Qed.
+
 Definition count_occ_lt_pos_find T (dec : eq_dec T)
   t (l r : list T) (p : pos t l) : count_occ dec (pos_before p) t < count_occ dec r t -> 
   { p' : pos t r | count_occ dec (pos_before p') t = count_occ dec (pos_before p) t }.
@@ -88,41 +95,73 @@ Definition count_occ_lt_pos_find T (dec : eq_dec T)
   induction l.
   eauto with *.
   intros.
-  destruct (dec t a).
-  subst.
-  destruct p.
+  dependent induction p.
   simpl in *.
-  clear e.
-  clear IHl.
   induction r;
   simpl in *.
   omega.
   destruct (dec a0 a).
   subst.
-  exists (@pos_fst _ a (a :: r) eq_refl).
+  exists (pos_fst a r).
   trivial.
   intuition.
-  destruct H0.
-  exists (pos_skip (a0 :: r) x).
+  destruct X.
+  exists (pos_skip a0 x).
   simpl in *.
   destruct (dec a0 a).
+  subst.
   tauto.
   trivial.
+  clear IHp.
   simpl in *.
-  destruct (dec a a).
-  clear e.
-  specialize (IHl p r).
-  assert (count_occ dec (pos_before p) a < count_occ dec r a).
-  auto with *.
-  intuition.
-  destruct H1.
-  induction r;
-  simpl in *.
-  omega.
-  destruct (dec a0 a).
+  destruct (dec a t).
   subst.
   unfold pos_before in *.
-  
+  specialize (IHl p).
+  assert (count_occ dec r t > 0).
+  omega.
+  apply count_occ_lt_In in H0.
+  destruct (remove_fst dec t r H0).
+  destruct x.
+  simpl in *.
+  intuition.
+  subst.
+  repeat (replace (t :: l1) with ([t] ++ l1) in *;trivial).
+  repeat rewrite count_occ_split in *.
+  rewrite H2 in *.
+  simpl in *.
+  destruct (dec t t).
+  simpl in *.
+  assert(count_occ dec (firstn (pos_nat p) l) t < count_occ dec l1 t).
+  omega.
+  clear e H.
+  specialize (IHl l1).
+  intuition.
+  destruct X.
+  induction l0.
+  simpl in *.
+  exists (pos_skip t x).
+  simpl in *.
+  destruct (dec t t).
+  auto.
+  tauto.
+  simpl in *.
+  destruct (dec a t).
+  discriminate.
+  intuition.
+  assert (In t (l0 ++ t :: l1)).
+  apply in_or_app.
+  simpl in *.
+  tauto.
+  intuition.
+  destruct X0.
+  exists (pos_skip a x0).
+  simpl in *.
+  destruct (dec a t).
+  tauto.
+  trivial.
+  tauto.
+  eauto.
 Defined.
 
 Definition permutation_type_find_pos T (t : T) dec (l l' : list T) (P : pos t l) :
@@ -186,27 +225,81 @@ Definition permutation_type_find_pos T (t : T) dec (l l' : list T) (P : pos t l)
   omega.
 Defined.
 
-Definition remove T (t : T) (l : list T) (P : pos t l) :
-  { ret : (list T) * (list T) | fst ret ++ t :: snd ret = l }.
+Definition remove_fst_join T (dec : eq_dec T) (t : T) l (P : In t l) :=
+  fst (` (remove_fst dec t _ P)) ++ snd (` (remove_fst dec t _ P)).
+
+Definition remove_pos T (t : T) l (p : pos t l) : 
+  { l' : (list T * list T) | 
+      l = (fst l') ++ [t] ++ (snd l') /\
+      forall dec, count_occ dec (fst l') t = count_occ dec (pos_before p) t }.
   induction l.
-  apply pos_lt_contain in P.
-  tauto.
-  destruct P.
+  eauto with *.
+  destruct p.
   simpl in *.
   invc e.
   exists (@nil T, l).
-  trivial.
+  simpl in *.
+  tauto.
+  simpl in *.
+  specialize (IHl p).
+  destruct IHl.
+  destruct x.
   simpl in *.
   intuition.
-  destruct X.
-  destruct x.
   subst.
-  simpl in *.
   exists (a :: l0, l1).
-  trivial.
+  simpl in *.
+  intuition.
+  destruct (dec a t);
+  auto.
 Defined.
 
-Definition remove_join T (t : T) l (P : pos t l) := fst (` (remove P)) ++ snd (` (remove P)).
+Definition find_front_pos_inner T (dec : eq_dec T) (l r : list T) n t
+  : n = length l -> Permutation (t :: l) r -> pos t r.
+  generalize dependent l.
+  generalize dependent r.
+  induction n.
+  intros.
+  destruct l.
+  simpl in *.
+  apply Permutation_length_1_inv in H0.
+  subst.
+  constructor.
+  trivial.
+  discriminate.
+  intros.
+  destruct l.
+  discriminate.
+  invc H.
+  destruct r.
+  apply Permutation_length in H0.
+  discriminate.
+  destruct (dec t t1).
+  subst.
+  constructor.
+  trivial.
+  apply pos_skip.
+  simpl in *.
+  assert (In t r).
+  eapply (Permutation_in t) in H0.
+  destruct H0.
+  subst.
+  tauto.
+  trivial.
+  simpl in *.
+  tauto.
+  destruct (bring_to_front dec t r H).
+  intuition.
+  destruct x.
+  discriminate.
+  invc H2.
+  assert(length l = length x).
+  apply Permutation_length in H0.
+  apply Permutation_length in H1.
+  simpl in *.
+  omega.
+  eauto with *.
+Defined.
 
 Definition remove_join_find_pos T dec (t t' : T) (l : list T) (P : pos t l) (P' : pos t' l) :
   t <> t' -> 
@@ -266,53 +359,6 @@ Definition remove_join_find_pos T dec (t t' : T) (l : list T) (P : pos t l) (P' 
   subst.
 Defined.
 
-Definition find_front_pos_inner T (dec : eq_dec T) (l r : list T) n t
-  : n = length l -> Permutation (t :: l) r -> pos t r.
-  generalize dependent l.
-  generalize dependent r.
-  induction n.
-  intros.
-  destruct l.
-  simpl in *.
-  apply Permutation_length_1_inv in H0.
-  subst.
-  constructor.
-  trivial.
-  discriminate.
-  intros.
-  destruct l.
-  discriminate.
-  invc H.
-  destruct r.
-  apply Permutation_length in H0.
-  discriminate.
-  destruct (dec t t1).
-  subst.
-  constructor.
-  trivial.
-  apply pos_skip.
-  simpl in *.
-  assert (In t r).
-  eapply (Permutation_in t) in H0.
-  destruct H0.
-  subst.
-  tauto.
-  trivial.
-  simpl in *.
-  tauto.
-  destruct (bring_to_front dec t r H).
-  intuition.
-  destruct x.
-  discriminate.
-  invc H2.
-  assert(length l = length x).
-  apply Permutation_length in H0.
-  apply Permutation_length in H1.
-  simpl in *.
-  omega.
-  eauto with *.
-Defined.
-
 Definition find_front_pos T (dec : eq_dec T) (l r : list T) t
   : Permutation (t :: l) r -> pos t r.
   eapply find_front_pos_inner;
@@ -327,7 +373,7 @@ Theorem perm_swap_trans : forall T (l : list T) r tl tr,
   constructor.
 Qed.
 
-Theorem count_occ_In : forall T dec (t : T) l, count_occ dec l t > 1 -> In t l.
+Theorem count_occ_In : forall T dec (t : T) l, count_occ dec l t >= 1 -> In t l.
   induction l;
   intros;
   simpl in *.
@@ -361,4 +407,3 @@ Definition pos_remove_eq :
   tauto.
   tauto.
 Defined.
-
