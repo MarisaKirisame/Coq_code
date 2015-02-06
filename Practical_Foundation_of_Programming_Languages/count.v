@@ -12,7 +12,7 @@ Fixpoint count_true (T : Type) (P : T -> bool) (l : list T) :=
 Definition count_false (T : Type) (P : T -> bool) (l : list T) :=
   count_true (fun x => negb (P x)) l.
 
-Theorem conunt_length_eq : forall T p (l : list T), count_true p l + count_false p l = length l.
+Theorem conunt_length : forall T p (l : list T), count_true p l + count_false p l = length l.
   intros.
   induction l.
   trivial.
@@ -23,7 +23,7 @@ Theorem conunt_length_eq : forall T p (l : list T), count_true p l + count_false
   omega.
 Qed.
 
-Theorem count_split_eq : 
+Theorem count_split : 
   forall T p (l r : list T), count_true p (l ++ r) = count_true p l + count_true p r.
   intros.
   induction l;
@@ -35,7 +35,7 @@ Theorem count_split_eq :
   auto.
 Qed.
 
-Theorem Permutation_count_eq : 
+Theorem Permutation_count : 
   forall T p (l r : list T), Permutation l r -> count_true p l = count_true p r.
   intros.
   induction H;
@@ -86,7 +86,7 @@ Theorem count_Exists : forall T (dec : T -> bool) (l : list T),
   auto with *.
 Qed.
 
-Theorem count_filter_eq : forall T p (l : list T), count_true p l = length (filter p l).
+Theorem count_filter : forall T p (l : list T), count_true p l = length (filter p l).
   induction l.
   trivial.
   simpl in *.
@@ -95,7 +95,7 @@ Theorem count_filter_eq : forall T p (l : list T), count_true p l = length (filt
   auto.
 Qed.
 
-Theorem count_count_occ_eq : forall T t (dec : eq_dec T) l, 
+Theorem count_count_occ : forall T t (dec : eq_dec T) l, 
   count_occ dec l t = count_true (fun e => if dec e t then true else false) l.
   induction l.
   trivial.
