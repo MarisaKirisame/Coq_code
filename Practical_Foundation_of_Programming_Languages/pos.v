@@ -79,3 +79,45 @@ Definition In_pos : forall T (t : T) (dec : eq_dec T)
   trivial.
 Defined.
 
+Definition pos_app : forall T (t : T) l r (p : pos t (l ++ r)),
+  { pl : pos t l | pos_before pl = pos_before p } + 
+  { pr : pos t r | l ++ pos_before pr = pos_before p }.
+  dependent induction p.
+  destruct l.
+  simpl in *.
+  destruct r.
+  discriminate.
+  invc x0.
+  subst.
+  eauto.
+  simpl in *.
+  invc x0.
+  subst.
+  left.
+  exists (pos_fst t0 l).
+  trivial.
+  destruct l.
+  simpl in *.
+  subst.
+  subst.
+  eauto.
+  simpl in *.
+  invc x0.
+  subst.
+  specialize (IHp l r p).
+  intuition.
+  destruct a.
+  left.
+  exists (pos_skip t0 x).
+  unfold pos_before in *.
+  simpl in *.
+  f_equal.
+  trivial.
+  destruct b.
+  right.
+  exists x.
+  unfold pos_before in *.
+  simpl in *.
+  f_equal.
+  trivial.
+Defined.

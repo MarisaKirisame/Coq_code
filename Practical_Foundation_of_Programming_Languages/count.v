@@ -23,7 +23,7 @@ Theorem conunt_length : forall T p (l : list T), count_true p l + count_false p 
   omega.
 Qed.
 
-Theorem count_split : 
+Theorem count_app : 
   forall T p (l r : list T), count_true p (l ++ r) = count_true p l + count_true p r.
   intros.
   induction l;

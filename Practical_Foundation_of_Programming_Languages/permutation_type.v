@@ -1,4 +1,5 @@
-Require Import List Program Permutation eq_dec bring_to_front tactic Setoid.
+Require Import Omega List Program Permutation.
+Require Import eq_dec bring_to_front tactic Setoid.
 
 Set Implicit Arguments.
 

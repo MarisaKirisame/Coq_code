@@ -1,4 +1,4 @@
-Require Import Program Permutation List eq_dec tactic count.
+Require Import Program Permutation List eq_dec tactic.
 
 Definition bring_to_front { T } 
   (dec : eq_dec T) e : 
