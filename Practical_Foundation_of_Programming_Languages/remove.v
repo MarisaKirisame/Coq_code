@@ -320,14 +320,41 @@ Definition remove_fst_join_find_pos T dec (l : list T) (t t' : T) (P : pos t l) 
   tauto.
   destruct (dec t1 t).
   discriminate.
-  admit.
-  specialize (IHl P P').
-  intuition.
-  destruct X.
+  destruct (pos_app _ _ P').
+  destruct s.
+  destruct (pos_extend_right l1 x).
+  exists (pos_skip t1 x0).
+  simpl in *.
+  destruct (dec t1 t1).
+  unfold pos_before in *.
+  rewrite e0.
+  rewrite e.
+  trivial.
+  tauto.
+  destruct s.
+  dependent induction x.
+  tauto.
+  clear IHx.
+  destruct (pos_extend_left (t0 :: l0) x).
+  simpl in *.
+  exists x0.
+  rewrite e0.
+  unfold pos_before in *.
+  simpl in *.
+  destruct (dec t0 t0).
+  rewrite <- e.
+  replace (t :: firstn (pos_nat x) l1) with ([t] ++ firstn (pos_nat x) l1).
+  repeat rewrite count_occ_app.
+  simpl in *.
+  destruct (dec t t0).
+  tauto.
+  trivial.
+  trivial.
+  tauto.
   unfold remove_fst_join.
   destruct remove_fst.
   simpl in *.
-  destruct x0.
+  destruct x.
   simpl in *.
   intuition.
   destruct l0;
@@ -337,22 +364,50 @@ Definition remove_fst_join_find_pos T dec (l : list T) (t t' : T) (P : pos t l) 
   trivial.
   destruct (dec t1 t).
   discriminate.
+  specialize (IHl P P').
+  intuition.
+  destruct X.
   unfold remove_fst_join in *.
   destruct remove_fst.
-  simpl in *.
-  intuition.
   destruct x0.
   simpl in *.
+  intuition.
   assert (l0 = l).
-  admit (**).
-  subst.
-  assert (l1 = l2).
-  admit (**).
-  subst.
-  clear H0.
+  clear e x P P'.
+  generalize dependent l0.
+  induction l;
+  intros.
+  destruct l0;
+  invc H0.
+  trivial.
   simpl in *.
-  invc H0
-  rewrite count_occ_app.
+  destruct (dec t t).
+  discriminate.
+  tauto.
+  simpl in *.
+  destruct (dec a t).
+  discriminate.
+  intuition.
+  destruct l0;
+  invc H0.
+  tauto.
+  f_equal.
+  apply H3.
+  simpl in *.
+  destruct (dec a t).
+  discriminate.
+  trivial.
+  trivial.
+  subst.
+  apply app_inv_head in H0.
+  invc H0.
+  exists (pos_skip t1 x).
+  simpl in *.
+  destruct (dec t1 t0).
+  tauto.
+  unfold pos_before in *.
+  rewrite e.
+  trivial.
 Defined.
 
 Definition find_front_pos T (dec : eq_dec T) (l r : list T) t
