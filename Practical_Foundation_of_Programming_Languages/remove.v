@@ -410,12 +410,6 @@ Definition remove_fst_join_find_pos T dec (l : list T) (t t' : T) (P : pos t l) 
   trivial.
 Defined.
 
-Definition find_front_pos T (dec : eq_dec T) (l r : list T) t
-  : Permutation (t :: l) r -> pos t r.
-  eapply find_front_pos_inner;
-  trivial.
-Defined.
-
 Theorem perm_swap_trans : forall T (l : list T) r tl tr,
   Permutation l r -> Permutation (tl :: tr :: l) (tr :: tl :: r).
   intros.
@@ -434,27 +428,3 @@ Theorem count_occ_In : forall T dec (t : T) l, count_occ dec l t >= 1 -> In t l.
   simpl in *;
   tauto.
 Qed.
-
-Definition pos_remove_eq :
-  forall T (t : T) l (p p' : pos t l), p <> p' -> pos_nat p <> pos_nat p'.
-  intros.
-  induction l.
-  admit.
-  destruct p, p';
-  simpl in *;
-  try discriminate.
-  inversion e.
-  subst.
-  intuition.
-  apply H.
-  f_equal.
-  admit.
-  intuition.
-  invc H0.
-  specialize (IHl p p').
-  assert(p <> p').
-  intuition.
-  subst.
-  tauto.
-  tauto.
-Defined.

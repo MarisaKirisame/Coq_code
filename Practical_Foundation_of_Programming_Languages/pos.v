@@ -121,3 +121,71 @@ Definition pos_app : forall T (t : T) l r (p : pos t (l ++ r)),
   f_equal.
   trivial.
 Defined.
+
+Definition pos_eq_pos_nat :
+  forall T (t : T) l (p p' : pos t l), p = p' -> pos_nat p = pos_nat p'.
+  intros.
+  subst.
+  trivial.
+Defined.
+
+Definition pos_neq_pos_nat :
+  forall T (t : T) l (p p' : pos t l), p <> p' -> pos_nat p <> pos_nat p'.
+  intros.
+  induction l.
+  eauto.
+  dependent induction p;
+  dependent induction p'.
+  tauto.
+  discriminate.
+  discriminate.
+  clear IHp IHp'.
+  simpl in *.
+  assert (pos_nat p <> pos_nat p').
+  apply IHl.
+  intuition.
+  subst.
+  tauto.
+  auto.
+Defined.
+
+Definition pos_nat_eq_pos :
+  forall T (t : T) l (p p' : pos t l), pos_nat p = pos_nat p' -> p = p'.
+  intros.
+  induction l.
+  eauto with *.
+  dependent induction p;
+  dependent induction p'.
+  trivial.
+  discriminate.
+  discriminate.
+  clear IHp IHp'.
+  simpl in *.
+  f_equal.
+  auto.
+Defined.
+
+Definition pos_nat_neq_pos :
+  forall T (dec : eq_dec T) (t : T) l (p p' : pos t l), pos_nat p <> pos_nat p' -> p <> p'.
+  intros.
+  induction l.
+  eauto with *.
+  dependent induction p;
+  dependent induction p'.
+  simpl in *.
+  tauto.
+  discriminate.
+  discriminate.
+  clear IHp IHp'.
+  simpl in *.
+  assert (p <> p').
+  auto.
+  intuition.
+  inversion H1.
+  apply Eqdep_dec.inj_pair2_eq_dec in H3.
+  apply Eqdep_dec.inj_pair2_eq_dec in H3.
+  tauto.
+  intros.
+  auto with *.
+  trivial.
+Defined.
