@@ -258,7 +258,8 @@ Definition remove_pos T (t : T) l (p : pos t l) :
   auto.
 Defined.
 
-Definition remove_fst_join_find_pos T dec (l : list T) (t t' : T) (P : pos t l) (P' : pos t' l) :
+Definition remove_fst_join_neq_find_pos T dec
+  (l : list T) (t t' : T) (P : pos t l) (P' : pos t' l) :
     t <> t' -> 
       { p : pos t' (remove_fst_join dec _ _ (pos_In P)) | 
           count_occ dec (pos_before P') t' = count_occ dec (pos_before p) t' }.
@@ -428,3 +429,9 @@ Theorem count_occ_In : forall T dec (t : T) l, count_occ dec l t >= 1 -> In t l.
   simpl in *;
   tauto.
 Qed.
+
+Definition remove_fst_join_eq_find_pos T dec
+  (l : list T) (t : T) (P P' : pos t l) :
+    P <> P' -> 
+      { p : pos t (remove_fst_join dec _ _ (pos_In P)) | 
+          count_occ dec (pos_before P') t = count_occ dec (pos_before p) t }.
