@@ -1,4 +1,4 @@
-Require Import Permutation Program List.
+Require Import Plus Permutation Program List.
 Require Import bring_to_front count tactic pos permutation_type eq_dec.
 
 Set Implicit Arguments.
@@ -430,8 +430,191 @@ Theorem count_occ_In : forall T dec (t : T) l, count_occ dec l t >= 1 -> In t l.
   tauto.
 Qed.
 
+Theorem In_count_occ : forall T dec (t : T) l, In t l -> count_occ dec l t >= 1.
+  induction l;
+  intros;
+  simpl in *.
+  tauto.
+  destruct (dec a t).
+  omega.
+  assert (In t l).
+  tauto.
+  tauto.
+Qed.
+
+Definition pos_before_pos T (t : T) lt (P P' : pos t lt) : Prop := pos_nat P < pos_nat P'.
+Definition pos_after_pos T (t : T) lt (P P' : pos t lt) : Prop := pos_nat P > pos_nat P'.
+
+Theorem pos_neq_pos_before_or_after_pos : forall T (t : T) lt (P P' : pos t lt),
+  ((pos_before_pos P P') \/ (pos_after_pos P P')) <-> P <> P'.
+  intuition;
+  subst;
+  unfold pos_before_pos in *;
+  unfold pos_after_pos in *;
+  try apply pos_neq_pos_nat in H;
+  omega.
+Qed.
+
+Theorem pos_before_length : forall T (t : T) lt (P : pos t lt),
+  pos_nat P = length (pos_before P).
+  dependent induction P.
+  trivial.
+  simpl in *.
+  auto.
+Qed.
+
+Theorem pos_before_eq : forall T t (lt : list T) (P : pos t lt) t' lt' (P' : pos t' lt'), 
+  pos_before P = pos_before P' -> pos_nat P = pos_nat P'.
+  intros.
+  repeat rewrite pos_before_length.
+  f_equal.
+  trivial.
+Qed.
+
+Theorem pos_before_l_app : forall T l t (lt : list T) (P : pos t lt) t' lt' (P' : pos t' lt'), 
+  pos_before P = l ++ pos_before P' -> pos_nat P = length l + pos_nat P'.
+  intros.
+  repeat rewrite pos_before_length.
+  rewrite H.
+  rewrite app_length.
+  trivial.
+Qed.
+
+Theorem pos_before_r_app : forall T l t (lt : list T) (P : pos t lt) t' lt' (P' : pos t' lt'), 
+  pos_before P = pos_before P' ++ l -> pos_nat P = pos_nat P' + length l.
+  intros.
+  repeat rewrite pos_before_length.
+  rewrite H.
+  rewrite app_length.
+  trivial.
+Qed.
+
 Definition remove_fst_join_eq_find_pos T dec
-  (l : list T) (t : T) (P P' : pos t l) :
-    P <> P' -> 
-      { p : pos t (remove_fst_join dec _ _ (pos_In P)) | 
-          count_occ dec (pos_before P') t = count_occ dec (pos_before p) t }.
+  (l : list T) (t : T) (P : pos t l) (I : In t (pos_before P)) :
+    { p : pos t (remove_fst_join dec _ _ (pos_In P)) | 
+          pos_before p = remove_fst_join dec _ _ I }.
+  dependent induction P.
+  simpl in *.
+  tauto.
+  simpl in *.
+  destruct (dec e t).
+  subst.
+  unfold remove_fst_join.
+  repeat destruct remove_fst.
+  destruct x, x0.
+  simpl in *.
+  intuition.
+  clear I.
+  destruct l0.
+  simpl in *.
+  invc H.
+  unfold pos_before in *.
+  simpl in *.
+  destruct l2;
+  simpl in *.
+  invc H1.
+  exists P.
+  trivial.
+  invc H1.
+  destruct (dec t0 t0).
+  discriminate.
+  tauto.
+  simpl in *.
+  invc H.
+  destruct (dec t0 t0).
+  discriminate.
+  tauto.
+  assert (In t (firstn (pos_nat P) l)).
+  tauto.
+  unfold remove_fst_join.
+  repeat destruct remove_fst.
+  destruct x, x0.
+  simpl in *.
+  intuition.
+  destruct l0.
+  invc H0.
+  tauto.
+  simpl in *.
+  invc H0.
+  destruct (dec t0 t).
+  discriminate.
+  unfold pos_before in *.
+  specialize (IHP H).
+  destruct IHP.
+  simpl in *.
+  destruct l2;
+  invc H2.
+  tauto.
+  simpl in *.
+  destruct (dec t1 t).
+  discriminate.
+  unfold remove_fst_join in *.
+  repeat destruct remove_fst.
+  destruct x0, x1.
+  simpl in *.
+  intuition.
+  assert (l0 = l).
+  clear e x P H H5 I H4.
+  generalize dependent l0.
+  induction l;
+  destruct l0;
+  intros;
+  simpl in *;
+  trivial;
+  invc H0.
+  destruct (dec t t).
+  discriminate.
+  tauto.
+  destruct (dec a a).
+  discriminate.
+  tauto.
+  f_equal.
+  apply IHl.
+  destruct (dec a t).
+  discriminate.
+  trivial.
+  destruct (dec a t).
+  discriminate.
+  trivial.
+  trivial.
+  subst.
+  apply app_inv_head in H0.
+  invc H0.
+  clear I.
+  assert (l2 ++ t :: l3 = l5 ++ t :: l6).
+  rewrite <- H5.
+  trivial.
+  assert (l5 = l2).
+  clear H5 H4 P x e H.
+  generalize dependent l5.
+  induction l2;
+  destruct l5;
+  intros;
+  trivial;
+  simpl in *;
+  invc H0.
+  destruct (dec t0 t0).
+  discriminate.
+  tauto.
+  destruct (dec t t).
+  discriminate.
+  tauto.
+  f_equal.
+  destruct (dec t0 t).
+  discriminate.
+  apply IHl2;
+  trivial.
+  subst.
+  assert (l6 = l3).
+  assert (l2 ++ t :: l3 = l2 ++ t :: l6).
+  rewrite <- H5.
+  trivial.
+  apply app_inv_head in H0.
+  invc H0.
+  trivial.
+  subst.
+  exists (pos_skip t1 x).
+  simpl in *.
+  f_equal.
+  trivial.
+Defined.
