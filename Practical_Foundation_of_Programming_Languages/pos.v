@@ -64,19 +64,22 @@ Definition pos_In : forall T (t : T) lt, pos t lt -> In t lt.
 Qed.
 
 Definition In_pos : forall T (t : T) (dec : eq_dec T)
-  lt, In t lt -> pos t lt.
+  lt, In t lt -> { p : pos t lt | count_occ dec (pos_before p) t = 0 }.
   induction lt;
   intros;
   simpl in *.
   tauto.
   destruct (dec a t).
   subst.
-  constructor.
+  exists (pos_fst t lt).
+  trivial.
   assert (In t lt).
   tauto.
   intuition.
-  constructor.
-  trivial.
+  destruct X.
+  exists (pos_skip a x).
+  simpl in *.
+  dedec dec tauto.
 Defined.
 
 Definition pos_app : forall T (t : T) l r (p : pos t (l ++ r)),
