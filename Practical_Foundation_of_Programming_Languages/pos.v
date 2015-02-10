@@ -79,7 +79,8 @@ Definition In_pos : forall T (t : T) (dec : eq_dec T)
   destruct X.
   exists (pos_skip a x).
   simpl in *.
-  dedec dec tauto.
+  dedec dec;
+  tauto.
 Defined.
 
 Definition pos_app : forall T (t : T) l r (p : pos t (l ++ r)),

@@ -101,11 +101,13 @@ Definition count_occ_lt_pos_find T (dec : eq_dec T)
   destruct (In_pos _ dec _ H).
   eauto.
   clear IHp.
-  dedec dec subst.
+  dedec dec;
+  subst.
   dependent induction r;
   simpl in *.
   omega.
-  dedec dec subst.
+  dedec dec;
+  subst.
   assert (count_occ dec (firstn (pos_nat p) l) t < count_occ dec r t).
   omega.
   specialize (IHl p r).
@@ -113,12 +115,16 @@ Definition count_occ_lt_pos_find T (dec : eq_dec T)
   destruct X.
   exists (pos_skip t x).
   simpl in *.
-  dedec dec auto; tauto.
+  dedec dec;
+  auto;
+  tauto.
   intuition.
   destruct X.
   exists (pos_skip a x).
   simpl in *.
-  dedec dec subst; tauto.
+  dedec dec;
+  subst;
+  tauto.
   eauto.
 Defined.
 
@@ -135,18 +141,14 @@ Definition permutation_type_find_pos T (t : T) dec (l l' : list T) (P : pos t l)
   destruct IHX.
   simpl in *.
   exists (pos_skip x x0).
-  destruct (dec x t).
-  subst.
-  simpl in *.
-  destruct (dec t t).
-  auto.
-  tauto.
-  simpl in *.
-  destruct (dec x t).
-  subst.
-  tauto.
-  trivial.
+  repeat (
+    dedec dec;
+    subst;
+    auto;
+    try tauto;
+    simpl in *).
   depde P.
+  simpl in *.
   destruct (dec x y).
   subst.
   exists (pos_fst y (y :: l)).
@@ -154,32 +156,21 @@ Definition permutation_type_find_pos T (t : T) dec (l l' : list T) (P : pos t l)
   simpl in *.
   exists (pos_skip x (pos_fst y l)).
   simpl in *.
-  destruct (dec x y).
-  subst.
+  dedec dec;
   tauto.
-  trivial.
   depde p.
   simpl in *.
-  destruct (dec y x).
+  dedec dec;
   subst.
   exists (pos_skip x (pos_fst x l)).
   simpl in *.
-  destruct (dec x x).
-  trivial.
+  dedec dec;
   tauto.
   exists (pos_fst x (y :: l)).
   trivial.
   simpl in *.
   exists (pos_skip x (pos_skip y p0)).
-  destruct (dec x t);
-  destruct (dec y t);
-  subst;
-  simpl in *;
-  destruct (dec t t);
-  try destruct (dec y t);
-  try destruct (dec x t);
-  trivial;
-  tauto.
+  repeat (dedec dec; subst; simpl in *;trivial;try tauto).
   specialize (IHX1 P).
   destruct IHX1.
   specialize (IHX2 x).
@@ -239,13 +230,13 @@ Definition remove_fst_join_neq_find_pos T dec
   tauto.
   clear IHP'.
   simpl in *.
-  destruct (dec a t).
+  dedec dec.
   tauto.
   exists P'.
   trivial.
   simpl in *.
   invc H0.
-  destruct (dec t t).
+  dedec dec.
   discriminate.
   tauto.
   clear IHP.
@@ -265,7 +256,7 @@ Definition remove_fst_join_neq_find_pos T dec
   trivial.
   clear IHP'.
   simpl in *.
-  destruct (dec a t0).
+  dedec dec.
   subst.
   unfold remove_fst_join.
   destruct remove_fst.
@@ -277,7 +268,7 @@ Definition remove_fst_join_neq_find_pos T dec
   simpl in *;
   invc H0.
   tauto.
-  destruct (dec t1 t).
+  dedec dec.
   discriminate.
   destruct (pos_app _ _ P').
   destruct s.
@@ -321,7 +312,7 @@ Definition remove_fst_join_neq_find_pos T dec
   invc H0.
   exists P'.
   trivial.
-  destruct (dec t1 t).
+  dedec dec.
   discriminate.
   specialize (IHl P P').
   intuition.
@@ -340,7 +331,7 @@ Definition remove_fst_join_neq_find_pos T dec
   invc H0.
   trivial.
   simpl in *.
-  destruct (dec t t).
+  dedec dec.
   discriminate.
   tauto.
   simpl in *.
@@ -353,7 +344,7 @@ Definition remove_fst_join_neq_find_pos T dec
   f_equal.
   apply H3.
   simpl in *.
-  destruct (dec a t).
+  dedec dec.
   discriminate.
   trivial.
   trivial.
@@ -362,7 +353,7 @@ Definition remove_fst_join_neq_find_pos T dec
   invc H0.
   exists (pos_skip t1 x).
   simpl in *.
-  destruct (dec t1 t0).
+  dedec dec.
   tauto.
   unfold pos_before in *.
   rewrite e.
@@ -393,7 +384,7 @@ Theorem In_count_occ : forall T dec (t : T) l, In t l -> count_occ dec l t >= 1.
   intros;
   simpl in *.
   tauto.
-  destruct (dec a t).
+  dedec dec.
   omega.
   assert (In t l).
   tauto.
@@ -451,61 +442,32 @@ Definition remove_fst_join_eq_find_pos T (dec : eq_dec T)
   (l : list T) (t : T) (P : pos t l) (I : In t (pos_before P)) :
     { p : pos t (remove_fst_join dec _ _ (pos_In P)) | 
           pos_before p = remove_fst_join dec _ _ I }.
-  dependent induction P.
+  dependent induction P;
   simpl in *.
   tauto.
-  simpl in *.
-  destruct (dec e t).
-  subst.
-  unfold remove_fst_join.
-  repeat destruct remove_fst.
-  destruct x, x0.
-  simpl in *.
-  intuition.
-  clear I.
-  destruct l0.
-  simpl in *.
-  invc H.
-  unfold pos_before in *.
-  simpl in *.
+  destruct (dec e t);
+  subst;
+  unfold remove_fst_join;
+  repeat destruct remove_fst;
+  destruct x, x0;
+  simpl in *;
+  intuition;
+  destruct l0;
+  simpl in *;
+  invc H;
+  unfold pos_before in *;
+  simpl in *;
   destruct l2;
-  simpl in *.
-  invc H1.
-  exists P.
-  trivial.
-  invc H1.
-  destruct (dec t0 t0).
-  discriminate.
+  simpl in *;
+  invc H1;
+  eauto;
+  dedec dec;
+  try discriminate;
+  try tauto.
+  assert (In t (firstn (pos_nat P) (l0 ++ t :: l1))).
   tauto.
-  simpl in *.
-  invc H.
-  destruct (dec t0 t0).
-  discriminate.
-  tauto.
-  assert (In t (firstn (pos_nat P) l)).
-  tauto.
-  unfold remove_fst_join.
-  repeat destruct remove_fst.
-  destruct x, x0.
-  simpl in *.
-  intuition.
-  destruct l0.
-  invc H0.
-  tauto.
-  simpl in *.
-  invc H0.
-  destruct (dec t0 t).
-  discriminate.
-  unfold pos_before in *.
   specialize (IHP H).
   destruct IHP.
-  simpl in *.
-  destruct l2;
-  invc H2.
-  tauto.
-  simpl in *.
-  destruct (dec t1 t).
-  discriminate.
   unfold remove_fst_join in *.
   repeat destruct remove_fst.
   destruct x0, x1.
@@ -519,28 +481,20 @@ Definition remove_fst_join_eq_find_pos T (dec : eq_dec T)
   intros;
   simpl in *;
   trivial;
-  invc H0.
-  destruct (dec t t).
-  discriminate.
-  tauto.
-  destruct (dec a a).
-  discriminate.
-  tauto.
+  invc H0;
+  repeat dedec dec;
+  try invc H1;
+  try discriminate;
+  try tauto.
   f_equal.
-  apply IHl.
-  destruct (dec a t).
-  discriminate.
-  trivial.
-  destruct (dec a t).
-  discriminate.
-  trivial.
+  apply IHl;
   trivial.
   subst.
-  apply app_inv_head in H0.
-  invc H0.
+  apply app_inv_head in H1.
+  invc H1.
   clear I.
   assert (l2 ++ t :: l3 = l5 ++ t :: l6).
-  rewrite <- H5.
+  rewrite <- H4.
   trivial.
   assert (l5 = l2).
   clear H5 H4 P x e H.
@@ -550,27 +504,17 @@ Definition remove_fst_join_eq_find_pos T (dec : eq_dec T)
   intros;
   trivial;
   simpl in *;
-  invc H0.
-  destruct (dec t0 t0).
-  discriminate.
-  tauto.
-  destruct (dec t t).
-  discriminate.
-  tauto.
+  invc H0;
+  repeat dedec dec;
+  try invc H1;
+  try discriminate;
+  try tauto.
   f_equal.
-  destruct (dec t0 t).
-  discriminate.
   apply IHl2;
   trivial.
   subst.
-  assert (l6 = l3).
-  assert (l2 ++ t :: l3 = l2 ++ t :: l6).
-  rewrite <- H5.
-  trivial.
-  apply app_inv_head in H0.
-  invc H0.
-  trivial.
-  subst.
+  apply app_inv_head in H1.
+  invc H1.
   exists (pos_skip t1 x).
   simpl in *.
   f_equal.
@@ -601,8 +545,8 @@ Definition remove_pos_join_neq_find_pos T (dec : eq_dec T)
   admit.
   specialize (H1 dec).
   simpl in *.
-  destruct (dec t0 t0).
-  discriminate.
+  repeat dedec dec;
+  try discriminate;
   tauto.
   clear IHP.
   unfold remove_pos_join.
@@ -634,71 +578,41 @@ Definition remove_pos_join_neq_find_pos T (dec : eq_dec T)
   specialize (H3 dec).
   destruct l2;
   invc H0;
-  invc H2.
-  destruct (dec t t).
-  discriminate.
-  tauto.
-  destruct (dec t1 t0).
-  subst.
-  simpl in *.
-  destruct (dec t0 t).
-  subst.
-  tauto.
+  invc H2;
+  repeat (dedec dec; simpl in *);
+  subst;
+  try discriminate;
+  try tauto.
   assert (l2 = l0).
   admit (**).
   subst.
   apply app_inv_head in H6.
   invc H6.
-  discriminate.
-  tauto.
-  destruct (dec t1 t).
+  admit (**).
+  assert (l2 = l0).
+  admit (**).
   subst.
+  apply app_inv_head in H6.
+  invc H6.
+  exists (pos_skip t x).
   simpl in *.
-  destruct (dec t t).
-  destruct (dec t t0).
-  tauto.
-  clear e0 H.
-  invc H1.
-  destruct (pos_app _ _ P');
-  destruct s.
-  destruct (pos_extend_right l1 x0).
-  exists (pos_skip t x1).
-  simpl in *.
-  destruct (dec t t0).
+  dedec dec.
   tauto.
   unfold pos_before in *.
-  rewrite e1.
-  rewrite e0.
   trivial.
-  dependent induction x0.
-  tauto.
-  clear IHx0.
-  destruct (pos_extend_left l0 x0).
-  exists (pos_skip t x1).
+  assert (l2 = l0).
+  admit (**).
+  subst.
+  apply app_inv_head in H6.
+  invc H6.
+  exists (pos_skip t1 x).
   unfold pos_before in *.
   simpl in *.
-  destruct (dec t t0).
-  tauto.
-  rewrite e1.
-  rewrite <- e0.
-  repeat rewrite count_occ_app.
-  simpl in *.
-  destruct (dec t t0).
+  dedec dec.
   tauto.
   trivial.
-  tauto.
-  destruct (dec t1 t0).
-  subst.
-  simpl in *.
-  destruct (dec t0 t).
-  tauto.
-  destruct (pos_extend_right l1 x0
-  admit (**).
-  simpl in *.
-  destruct (dec t1 t).
-  tauto.
-  admit (**).
 Defined.
+
 Definition remove_fst_join_eq_find_pos T dec
   (l : list T) (t : T) (P : pos t l) (I : In t (pos_before P)) :
     { p : pos t (remove_fst_join dec _ _ (pos_In P)) | 
