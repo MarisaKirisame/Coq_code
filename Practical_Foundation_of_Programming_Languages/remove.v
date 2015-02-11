@@ -610,7 +610,101 @@ Definition remove_pos_join_neq_find_pos T (dec : eq_dec T)
   tauto.
 Defined.
 
-Definition remove_fst_join_eq_find_pos T dec
-  (l : list T) (t : T) (P : pos t l) (I : In t (pos_before P)) :
-    { p : pos t (remove_fst_join dec _ _ (pos_In P)) | 
-          pos_before p = remove_fst_join dec _ _ I }.
+Definition remove_pos_join_pos_before_pos_find_pos T (dec : eq_dec T)
+  (l : list T) (t : T) (P P' : pos t l) :
+    pos_before_pos P' P ->
+      { p : pos t (remove_pos_join P) | 
+          pos_before p = pos_before P' }.
+  induction l;
+  intros.
+  eauto with *.
+  unfold remove_pos_join.
+  destruct remove_pos.
+  destruct x.
+  simpl in *.
+  intuition.
+  specialize (H1 dec).
+  destruct l0;
+  invc H0;
+  simpl in *.
+  unfold pos_before_pos in *.
+  unfold pos_before in *.
+  dependent induction P;
+  simpl in *.
+  omega.
+  dedec dec.
+  discriminate.
+  tauto.
+  dedec dec.
+  subst.
+  unfold pos_before_pos in *.
+  dependent induction P;
+  dependent induction P';
+  simpl in *;
+  try omega;
+  clear IHP;
+  try clear IHP';
+  dedec dec;
+  try tauto;
+  unfold pos_before in *;
+  simpl in *.
+  exists (pos_fst t (l0 ++ l1)).
+  trivial.
+  invc H1.
+  specialize (IHl P P').
+  assert (pos_nat P' < pos_nat P).
+  omega.
+  intuition.
+  destruct X.
+  unfold remove_pos_join in *.
+  destruct remove_pos.
+  destruct x0.
+  simpl in *.
+  intuition.
+  specialize (H3 dec).
+  unfold pos_before in *.
+  assert (l0 = l).
+  apply (count_occ_app_head t dec _ l1 _ l2);
+  trivial.
+  omega.
+  subst.
+  apply app_inv_head in H1.
+  invc H1.
+  exists (pos_skip t x).
+  simpl in *.
+  f_equal.
+  trivial.
+  dependent induction P;
+  dependent induction P';
+  try tauto.
+  clear IHP IHP'.
+  simpl in *.
+  dedec dec.
+  tauto.
+  unfold pos_before_pos in *.
+  specialize (IHl P P').
+  simpl in *.
+  assert (pos_nat P' < pos_nat P).
+  omega.
+  intuition.
+  destruct X.
+  unfold remove_pos_join in *.
+  destruct remove_pos.
+  destruct x0.
+  simpl in *.
+  intuition.
+  assert (l0 = l).
+  apply (count_occ_app_head t dec _ l1 _ l2);
+  trivial.
+  specialize (H3 dec).
+  unfold pos_before in *.
+  omega.
+  subst.
+  apply app_inv_head in H2.
+  invc H2.
+  exists (pos_skip t0 x).
+  unfold pos_before in *.
+  simpl in *.
+  f_equal.
+  trivial.
+Defined.
