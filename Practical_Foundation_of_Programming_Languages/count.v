@@ -106,3 +106,32 @@ Theorem count_count_occ : forall T t (dec : eq_dec T) l,
   auto.
   trivial.
 Qed.
+
+Theorem count_occ_app_head : forall T t dec (lh lt rh rt : list T),
+  lh ++ t :: lt = rh ++ t :: rt -> 
+    count_occ dec lh t = count_occ dec rh t ->
+      lh = rh.
+  induction lh;
+  intros;
+  destruct rh;
+  invc H;
+  simpl in *;
+  repeat dedec dec;
+  trivial;
+  try discriminate;
+  try tauto;
+  f_equal;
+  eauto.
+Qed.
+
+Theorem count_occ_app_tail : forall T t dec (lh lt rh rt : list T),
+  lh ++ t :: lt = rh ++ t :: rt -> 
+    count_occ dec lh t = count_occ dec rh t ->
+      lt = rt.
+  intros.
+  rewrite (count_occ_app_head t dec lh lt rh rt) in H;
+  trivial.
+  apply app_inv_head in H.
+  invc H.
+  trivial.
+Qed.

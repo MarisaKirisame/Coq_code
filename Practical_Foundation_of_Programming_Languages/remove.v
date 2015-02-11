@@ -576,41 +576,38 @@ Definition remove_pos_join_neq_find_pos T (dec : eq_dec T)
   intuition.
   specialize (H1 dec).
   specialize (H3 dec).
+  subst.
   destruct l2;
-  invc H0;
   invc H2;
-  repeat (dedec dec; simpl in *);
-  subst;
   try discriminate;
-  try tauto.
-  assert (l2 = l0).
-  admit (**).
-  subst.
-  apply app_inv_head in H6.
-  invc H6.
-  admit (**).
-  assert (l2 = l0).
-  admit (**).
-  subst.
-  apply app_inv_head in H6.
-  invc H6.
-  exists (pos_skip t x).
-  simpl in *.
-  dedec dec.
+  try tauto;
+  repeat (
+    dedec dec;
+    subst;
+    simpl in *);
+  try discriminate;
+  try tauto;
+  (assert (l2 = l0);
+  [
+    symmetry;
+    apply (count_occ_app_head t dec _ l1 _ l3);
+    trivial;
+    unfold pos_before in *;
+    omega|
+  ]);
+  subst;
+  apply app_inv_head in H5;
+  invc H5;
+  [
+    exists (pos_skip t0 x)|
+    exists (pos_skip t x)|
+    exists (pos_skip t1 x)
+  ];
+  simpl in *;
+  dedec dec;
+  trivial;
+  auto;
   tauto.
-  unfold pos_before in *.
-  trivial.
-  assert (l2 = l0).
-  admit (**).
-  subst.
-  apply app_inv_head in H6.
-  invc H6.
-  exists (pos_skip t1 x).
-  unfold pos_before in *.
-  simpl in *.
-  dedec dec.
-  tauto.
-  trivial.
 Defined.
 
 Definition remove_fst_join_eq_find_pos T dec
