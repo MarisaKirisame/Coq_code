@@ -708,3 +708,141 @@ Definition remove_pos_join_pos_before_pos_find_pos T (dec : eq_dec T)
   f_equal.
   trivial.
 Defined.
+
+Definition pos_contract_left T (l r : list T) (t : T) (P : pos t (l ++ r)) :
+  pos_nat P < length l -> { p : pos t l | pos_before p = pos_before P }.
+  induction l;
+  intros;
+  simpl in *.
+  omega.
+  dependent induction P.
+  exists (pos_fst a l).
+  trivial.
+  clear IHP.
+  simpl in *.
+  assert (pos_nat P < length l).
+  omega.
+  specialize (IHl P H0).
+  destruct IHl.
+  exists (pos_skip a x).
+  unfold pos_before in *.
+  simpl in *.
+  f_equal.
+  trivial.
+Defined.
+
+Definition pos_contract_right T (l r : list T) (t : T) (P : pos t (l ++ r)) :
+  pos_nat P >= length l -> { p : pos t r | l ++ pos_before p = pos_before P }.
+  induction l;
+  intros;
+  simpl in *.
+  eauto.
+  dependent induction P;
+  simpl in *.
+  omega.
+  clear IHP.
+  assert (pos_nat P >= length l).
+  omega.
+  specialize (IHl P H0).
+  destruct IHl.
+  exists x.
+  unfold pos_before in *.
+  simpl in *.
+  f_equal.
+  trivial.
+Defined.
+
+Theorem pos_before_pos_after T (t : T) l r (p : pos t (l ++ t :: r)) : 
+  pos_before p = l -> pos_after p = r.
+  intros.
+  induction l.
+  simpl in *.
+  dependent induction p.
+  trivial.
+  discriminate.
+  simpl in *.
+  dependent induction p.
+  discriminate.
+  clear IHp.
+  specialize (IHl p).
+  unfold pos_before in *.
+  unfold pos_after in *.
+  simpl in *.
+  inversion H.
+  tauto.
+Qed.
+
+Theorem count_occ_before_count_occ_after T dec (t : T) l r (P : pos t (l ++ t :: r)) :
+  count_occ dec l t = count_occ dec (pos_before P) t -> 
+    count_occ dec r t = count_occ dec (pos_after P) t.
+  intros.
+  induction l;
+  dependent induction P;
+  simpl in *;
+  repeat dedec dec;
+  trivial;
+  try discriminate;
+  try tauto;
+  subst;
+  eauto.
+Qed.
+
+Hint Rewrite count_occ_app_head.
+
+Definition remove_pos_join_pos_after_pos_find_pos T (dec : eq_dec T)
+  (l : list T) (t : T) (P P' : pos t l) :
+    pos_after_pos P' P ->
+      { p : pos t (remove_pos_join P) | 
+          pos_after p = pos_after P' }.
+  induction l;
+  intros.
+  eauto with *.
+  unfold remove_pos_join.
+  destruct remove_pos.
+  destruct x.
+  simpl in *.
+  intuition.
+  specialize (H1 dec).
+  unfold pos_after_pos in *.
+  destruct l0;
+  invc H0;
+  simpl in *;
+  dependent induction P;
+  dependent induction P';
+  simpl in *;
+  try dedec dec;
+  subst;
+  try tauto;
+  try omega;
+  try clear IHP;
+  try clear IHP';
+  try solve [exists P'; trivial];
+  specialize (IHl P P');
+  assert (pos_nat P' > pos_nat P);
+  try omega;
+  clear H;
+  intuition;
+  destruct X;
+  unfold remove_pos_join in *;
+  destruct remove_pos;
+  destruct x0;
+  simpl in *;
+  intuition;
+  specialize (H2 dec);
+  (assert (l0 = l);
+  [
+    unfold pos_before in *;
+    invc H1;
+    rewrite <- H4 in H2;
+    eapply count_occ_app_head;
+    eauto|
+  ]);
+  subst;
+  apply app_inv_head in H;
+  invc H;
+  unfold pos_after in *.
+  exists (pos_skip t x).
+  trivial.
+  exists (pos_skip t0 x).
+  trivial.
+Defined.
