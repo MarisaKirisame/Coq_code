@@ -611,7 +611,7 @@ Definition remove_pos_join_neq_find_pos T (dec : eq_dec T)
 Defined.
 
 Definition remove_pos_join_pos_before_pos_find_pos T (dec : eq_dec T)
-  (l : list T) (t : T) (P P' : pos t l) :
+  (t : T) (l : list T) (P P' : pos t l) :
     pos_before_pos P' P ->
       { p : pos t (remove_pos_join P) | 
           pos_before p = pos_before P' }.
@@ -790,7 +790,7 @@ Qed.
 Hint Rewrite count_occ_app_head.
 
 Definition remove_pos_join_pos_after_pos_find_pos T (dec : eq_dec T)
-  (l : list T) (t : T) (P P' : pos t l) :
+  (t : T) (l : list T) (P P' : pos t l) :
     pos_after_pos P' P ->
       { p : pos t (remove_pos_join P) | 
           pos_after p = pos_after P' }.
@@ -846,3 +846,17 @@ Definition remove_pos_join_pos_after_pos_find_pos T (dec : eq_dec T)
   exists (pos_skip t0 x).
   trivial.
 Defined.
+
+Definition remove_pos_join_neq_pos_eq T dec (t t' : T) (neq : t <> t')
+  l (p : pos t l) (p_before : pos t' l) (p_after : pos t' (remove_pos_join p)) :=
+    p_after = ` (remove_pos_join_neq_find_pos dec p p_before neq).
+
+Definition remove_pos_join_pos_before_pos_eq T dec (t : T) l 
+  (p p_before : pos t l) (p_after : pos t (remove_pos_join p)) 
+    (pb : pos_before_pos p_before p) :=
+      p_after = ` (remove_pos_join_pos_before_pos_find_pos dec pb).
+
+Definition remove_pos_join_pos_after_pos_eq T dec (t : T) l 
+  (p p_before : pos t l) (p_after : pos t (remove_pos_join p)) 
+    (pb : pos_after_pos p_before p) :=
+      p_after = ` (remove_pos_join_pos_after_pos_find_pos dec pb).
