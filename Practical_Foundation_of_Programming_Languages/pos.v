@@ -323,3 +323,11 @@ Theorem count_occ_before_count_occ_after T dec (t : T) l r
   subst;
   eauto.
 Qed.
+
+Theorem pos_skip_neq : forall T (e : T) t l (p p' : pos t l),
+  pos_skip e p <> pos_skip e p' -> p <> p'.
+  intros.
+  intuition.
+  subst.
+  tauto.
+Defined.

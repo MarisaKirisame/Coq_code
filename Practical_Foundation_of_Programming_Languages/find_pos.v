@@ -584,6 +584,26 @@ Definition remove_pos_join_pos_after_pos_find_pos T (dec : eq_dec T)
   trivial.
 Defined.
 
+Definition pos_neq_pos_before_pos_pos_after_pos T (t : T) l (p p' : pos t l)
+  : p <> p' -> pos_before_pos p p' + pos_after_pos p p'.
+  unfold pos_before_pos, pos_after_pos.
+  dependent induction p;
+  dependent induction p';
+  intros;
+  simpl in *;
+  auto with *.
+  apply pos_skip_neq in H.
+  specialize (IHp p').
+  intuition.
+Defined.
+
+Definition remove_pos_join_eq T dec (t : T) l 
+  (p p' : pos t l) (neq : p <> p') : pos t (remove_pos_join p) :=
+  match pos_neq_pos_before_pos_pos_after_pos neq with
+  | inl P => ` (remove_pos_join_pos_after_pos_find_pos dec P)
+  | inr P => ` (remove_pos_join_pos_before_pos_find_pos dec P)
+  end.
+
 Definition remove_pos_join_neq_pos_eq T dec (t t' : T) (neq : t <> t')
   l (p : pos t l) (p_before : pos t' l)
     (p_after : pos t' (remove_pos_join p)) :=

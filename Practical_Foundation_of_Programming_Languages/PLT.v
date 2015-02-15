@@ -1,8 +1,7 @@
 Set Implicit Arguments.
 
 Require Import List Program Permutation ProofIrrelevance.
-
-Require Import eq_dec hlist pos remove.
+Require Import tactic eq_dec hlist pos remove.
 
 Theorem Permutation_occ : forall T (l : list T) r dec,
   Permutation l r -> forall t, count_occ dec r t = count_occ dec l t.
@@ -52,8 +51,12 @@ Section AST.
     Fixpoint AST_rect (P : forall T, AXs T -> Type)
       (FO : forall s' (op : operator s')
         (l : hlist (fun s' => AXs s') (get_arity_type op)), 
-          @hlist_forall _ (fun t ax => P t ax) (get_arity_type op) l -> P s (OAXs op l))
-            T (AX : AXs T) : P T AX.
+          @hlist_forall
+            _
+            (fun t ax => P t ax)
+            (get_arity_type op) l ->
+              P s (OAXs op l)) T (AX : AXs T) :
+        P T AX.
       destruct AX.
       apply FO.
       induction h;
@@ -72,7 +75,8 @@ Section AST.
       end.
     Definition ast_size : forall T (ast : AXs T), { n | n = AST_size ast }.
       intros.
-      refine (@AST_rect (fun _ ast' => {n : nat | n = AST_size ast'}) _ T ast);
+      refine (@AST_rect
+        (fun _ ast' => {n : nat | n = AST_size ast'}) _ T ast);
       intros;
       simpl in *.
       induction X.
@@ -96,27 +100,46 @@ Section AST.
     Defined.
     Definition remove_operator_inner s' (v : operator s') :
       forall s'',
-        { ls : list (operator_inner s'') |
-            (s' = s'' -> Permutation ((get_arity v) :: ls) (Os s')) /\
-            (s' <> s'' -> ls = Os s') }.
+        { ls : (list (operator_inner s'')*list (operator_inner s'')) |
+            (s' = s'' -> fst ls ++ (get_arity v) :: snd ls = (Os s')) /\
+            (s' <> s'' -> fst ls = Os s' /\ snd ls = []) }.
+      intros.
+      destruct (sdec s' s'').
+      subst.
+      assert (
+        {ls : list (operator_inner s'') * list (operator_inner s'') | 
+            fst ls ++ get_arity v :: snd ls = Os s'' }).
+      destruct v.
+      destruct (remove_pos p).
+      exists x.
+      simpl in *.
+      intuition.
+      destruct X.
+      exists x.
+      tauto.
+      exists (Os s', @nil (operator_inner s'')).
+      tauto.
     Defined.
     Definition remove_operator s' (v : operator s') : 
       forall s'', list (operator_inner s'') := 
-        fun s'' => proj1_sig (remove_operator_inner v s'').
-    Theorem mkop_inj : forall s' vl (sl sr : pos vl (Os s')), mkop sl = mkop sr -> sl = sr.
+        fun s'' => 
+          fst (proj1_sig (remove_operator_inner v s'')) ++ 
+          snd (proj1_sig (remove_operator_inner v s'')).
+    Theorem mkop_inj : forall s' vl (sl sr : pos vl (Os s')),
+      mkop sl = mkop sr -> sl = sr.
       inversion 1.
       apply Eqdep_dec.inj_pair2_eq_dec in H1;
       try apply list_eq_dec;
       trivial.
     Qed.
+
     Definition opdec : forall s', eq_dec (operator s').
-      unfold eq_dec.
       intros.
       destruct l, r;
       destruct (list_eq_dec sdec o o0);
       subst;
       unfold operator_inner in o0;
-      try destruct (eq_pos_dec p p0).
+      try destruct (eq_pos_dec (list_eq_dec sdec) p p0).
       subst.
       tauto.
       right.
@@ -139,38 +162,12 @@ Section AST.
     repeat apply list_eq_dec.
     trivial.
   Defined.
-
-  Definition update_operator (s' : s) Os (op op' : operator Os s') : op <> op' -> 
-    { newop : operator (remove_operator op') s' | get_arity op = get_arity newop }.
+  Print operator.
+  Definition update_operator (s' : s) Os (op op' : operator Os s') : 
+    op <> op' -> 
+      { newop : operator (remove_operator op') s' |
+        get_arity op = get_arity newop }.
       (*match only the first one?*)
-    intros.
-    assert (pos (get_arity op) (remove_operator op' s')).
-    unfold remove_operator.
-    destruct (remove_operator_inner op' s').
-    simpl in *.
-    intuition.
-    clear H1.
-    destruct op.
-    simpl in *.
-    assert(
-      forall t,
-        count_occ (list_eq_dec sdec) (Os s') t =
-        count_occ (list_eq_dec sdec) (get_arity op' :: x) t).
-    eapply Permutation_occ.
-    trivial.
-    assert (pos o (get_arity op' :: x)).
-    eapply (pos_find _ _ p).
-    assert (pos_before p ++ [o] ++ pos_after p = (Os s')).
-    apply pos_before_pos_after.
-    repeat rewrite <- H1 in *.
-    rewrite <- H0 in *.
-    admit (**).
-    destruct H1.
-    invc e.
-    admit (*?*).
-    trivial.
-    exists (mkop H0).
-    trivial.
   Defined.
 
 End AST.
