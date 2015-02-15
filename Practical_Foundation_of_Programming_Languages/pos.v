@@ -170,7 +170,8 @@ Definition pos_nat_eq_pos :
 Defined.
 
 Definition pos_nat_neq_pos :
-  forall T (dec : eq_dec T) (t : T) l (p p' : pos t l), pos_nat p <> pos_nat p' -> p <> p'.
+  forall T (dec : eq_dec T) (t : T) l (p p' : pos t l),
+    pos_nat p <> pos_nat p' -> p <> p'.
   intros.
   induction l.
   eauto with *.
@@ -193,3 +194,132 @@ Definition pos_nat_neq_pos :
   auto with *.
   trivial.
 Defined.
+
+Definition pos_extend_right T (l r : list T) t (p : pos t l) : 
+  { p' : pos t (l ++ r) | pos_before p' = pos_before p }.
+  induction l.
+  eauto with *.
+  dependent induction p.
+  simpl in *.
+  exists (pos_fst a (l ++ r)).
+  trivial.
+  specialize (IHl p).
+  destruct IHl.
+  simpl in *.
+  exists (pos_skip a x).
+  unfold pos_before in *.
+  simpl in *.
+  f_equal.
+  trivial.
+Defined.
+
+Definition pos_extend_left T (l r : list T) t (p : pos t r) : 
+  { p' : pos t (l ++ r) | pos_before p' = l ++ pos_before p }.
+  induction l.
+  simpl in *.
+  eauto.
+  destruct IHl.
+  simpl in *.
+  exists (pos_skip a x).
+  unfold pos_before in *.
+  simpl in *.
+  f_equal.
+  trivial.
+Defined.
+
+Theorem pos_before_length : forall T (t : T) lt (P : pos t lt),
+  pos_nat P = length (pos_before P).
+  dependent induction P.
+  trivial.
+  simpl in *.
+  auto.
+Qed.
+
+Theorem pos_before_eq : forall T t (lt : list T) (P : pos t lt) t' lt'
+  (P' : pos t' lt'), 
+  pos_before P = pos_before P' -> pos_nat P = pos_nat P'.
+  intros.
+  repeat rewrite pos_before_length.
+  f_equal.
+  trivial.
+Qed.
+
+Theorem pos_before_l_app : forall T l t (lt : list T)
+  (P : pos t lt) t' lt' (P' : pos t' lt'), 
+  pos_before P = l ++ pos_before P' -> pos_nat P = length l + pos_nat P'.
+  intros.
+  repeat rewrite pos_before_length.
+  rewrite H.
+  rewrite app_length.
+  trivial.
+Qed.
+
+Theorem pos_before_r_app : forall T l t (lt : list T)
+  (P : pos t lt) t' lt' (P' : pos t' lt'), 
+  pos_before P = pos_before P' ++ l -> pos_nat P = pos_nat P' + length l.
+  intros.
+  repeat rewrite pos_before_length.
+  rewrite H.
+  rewrite app_length.
+  trivial.
+Qed.
+
+Definition pos_contract_left T (l r : list T) (t : T) (P : pos t (l ++ r)) :
+  pos_nat P < length l -> { p : pos t l | pos_before p = pos_before P }.
+  induction l;
+  intros;
+  simpl in *.
+  omega.
+  dependent induction P.
+  exists (pos_fst a l).
+  trivial.
+  clear IHP.
+  simpl in *.
+  assert (pos_nat P < length l).
+  omega.
+  specialize (IHl P H0).
+  destruct IHl.
+  exists (pos_skip a x).
+  unfold pos_before in *.
+  simpl in *.
+  f_equal.
+  trivial.
+Defined.
+
+Definition pos_contract_right T (l r : list T) (t : T) (P : pos t (l ++ r)) :
+  pos_nat P >= length l ->
+    { p : pos t r | l ++ pos_before p = pos_before P }.
+  induction l;
+  intros;
+  simpl in *.
+  eauto.
+  dependent induction P;
+  simpl in *.
+  omega.
+  clear IHP.
+  assert (pos_nat P >= length l).
+  omega.
+  specialize (IHl P H0).
+  destruct IHl.
+  exists x.
+  unfold pos_before in *.
+  simpl in *.
+  f_equal.
+  trivial.
+Defined.
+
+Theorem count_occ_before_count_occ_after T dec (t : T) l r
+  (P : pos t (l ++ t :: r)) :
+    count_occ dec l t = count_occ dec (pos_before P) t -> 
+      count_occ dec r t = count_occ dec (pos_after P) t.
+  intros.
+  induction l;
+  dependent induction P;
+  simpl in *;
+  repeat dedec dec;
+  trivial;
+  try discriminate;
+  try tauto;
+  subst;
+  eauto.
+Qed.

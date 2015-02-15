@@ -23,8 +23,8 @@ Theorem conunt_length : forall T p (l : list T), count_true p l + count_false p 
   omega.
 Qed.
 
-Theorem count_app : 
-  forall T p (l r : list T), count_true p (l ++ r) = count_true p l + count_true p r.
+Theorem count_app : forall T p (l r : list T),
+  count_true p (l ++ r) = count_true p l + count_true p r.
   intros.
   induction l;
   intros.
@@ -35,8 +35,8 @@ Theorem count_app :
   auto.
 Qed.
 
-Theorem Permutation_count : 
-  forall T p (l r : list T), Permutation l r -> count_true p l = count_true p r.
+Theorem Permutation_count : forall T p (l r : list T),
+  Permutation l r -> count_true p l = count_true p r.
   intros.
   induction H;
   simpl in *;
@@ -44,7 +44,8 @@ Theorem Permutation_count :
   omega.
 Qed.
 
-Theorem count_le_length : forall T p (l : list T), count_true p l <= length l.
+Theorem count_le_length : forall T p (l : list T),
+  count_true p l <= length l.
   induction l.
   trivial.
   simpl in *.
@@ -86,7 +87,8 @@ Theorem count_Exists : forall T (dec : T -> bool) (l : list T),
   auto with *.
 Qed.
 
-Theorem count_filter : forall T p (l : list T), count_true p l = length (filter p l).
+Theorem count_filter : forall T p (l : list T),
+  count_true p l = length (filter p l).
   induction l.
   trivial.
   simpl in *.
@@ -96,7 +98,8 @@ Theorem count_filter : forall T p (l : list T), count_true p l = length (filter 
 Qed.
 
 Theorem count_count_occ : forall T t (dec : eq_dec T) l, 
-  count_occ dec l t = count_true (fun e => if dec e t then true else false) l.
+  count_occ dec l t =
+  count_true (fun e => if dec e t then true else false) l.
   induction l.
   trivial.
   simpl in *.
@@ -106,6 +109,7 @@ Theorem count_count_occ : forall T t (dec : eq_dec T) l,
   auto.
   trivial.
 Qed.
+Hint Rewrite count_count_occ.
 
 Theorem count_occ_app_head : forall T t dec (lh lt rh rt : list T),
   lh ++ t :: lt = rh ++ t :: rt -> 
@@ -123,6 +127,7 @@ Theorem count_occ_app_head : forall T t dec (lh lt rh rt : list T),
   f_equal;
   eauto.
 Qed.
+Hint Rewrite count_occ_app_head.
 
 Theorem count_occ_app_tail : forall T t dec (lh lt rh rt : list T),
   lh ++ t :: lt = rh ++ t :: rt -> 
@@ -134,4 +139,46 @@ Theorem count_occ_app_tail : forall T t dec (lh lt rh rt : list T),
   apply app_inv_head in H.
   invc H.
   trivial.
+Qed.
+
+Theorem count_occ_app : forall T dec (t : T) l r,
+  count_occ dec (l ++ r) t = count_occ dec l t + count_occ dec r t.
+  intros.
+  repeat rewrite count_count_occ.
+  apply count_app.
+Qed.
+
+Theorem count_occ_lt_In : forall T dec (t : T) l,
+  In t l <-> count_occ dec l t > 0.
+  intuition;
+  induction l;
+  simpl in *;
+  try destruct (dec a t);
+  subst;
+  (omega||tauto).
+Qed.
+
+Theorem count_occ_In : forall T dec (t : T) l,
+  count_occ dec l t >= 1 -> In t l.
+  induction l;
+  intros;
+  simpl in *.
+  omega.
+  destruct (dec a t);
+  subst;
+  simpl in *;
+  tauto.
+Qed.
+
+Theorem In_count_occ : forall T dec (t : T) l, 
+  In t l -> count_occ dec l t >= 1.
+  induction l;
+  intros;
+  simpl in *.
+  tauto.
+  dedec dec.
+  omega.
+  assert (In t l).
+  tauto.
+  tauto.
 Qed.

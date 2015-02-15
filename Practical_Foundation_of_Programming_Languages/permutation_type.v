@@ -10,9 +10,12 @@ Inductive permutation_type {A : Type} : list A -> list A -> Type :=
 | perm_type_swap : forall (x y : A) (l : list A),
     permutation_type (y :: x :: l) (x :: y :: l)
 | perm_type_trans : forall l l' l'' : list A,
-    permutation_type l l' -> permutation_type l' l'' -> permutation_type l l''.
+    permutation_type l l' ->
+      permutation_type l' l'' -> 
+        permutation_type l l''.
 
-Definition permutation_type_reflexive : forall T (l : list T), permutation_type l l.
+Definition permutation_type_reflexive : forall T (l : list T),
+  permutation_type l l.
   induction l.
   constructor.
   constructor.
@@ -69,9 +72,15 @@ Theorem permutation_type_cons_app : forall T (t : T) l l0 l1,
   constructor.
   simpl in *.
   invc H1.
-  assert (permutation_type (t :: t1 :: t0 :: l0 ++ l1) (t1 :: t :: t0 :: l0 ++ l1)).
+  assert (
+    permutation_type
+      (t :: t1 :: t0 :: l0 ++ l1)
+      (t1 :: t :: t0 :: l0 ++ l1)).
   constructor.
-  assert (permutation_type (t0 :: t1 :: l0 ++ t :: l1) (t1 :: t0 :: l0 ++ t :: l1)).
+  assert (
+    permutation_type
+      (t0 :: t1 :: l0 ++ t :: l1)
+      (t1 :: t0 :: l0 ++ t :: l1)).
   constructor.
   eapply perm_type_trans.
   exact X.
@@ -79,7 +88,10 @@ Theorem permutation_type_cons_app : forall T (t : T) l l0 l1,
   eapply perm_type_trans.
   exact X0.
   constructor.
-  assert (permutation_type (t :: t0 :: l0 ++ l1) (t0 :: t :: l0 ++ l1)).
+  assert (
+    permutation_type 
+      (t :: t0 :: l0 ++ l1)
+      (t0 :: t :: l0 ++ l1)).
   constructor.
   apply permutation_type_symmetric.
   eapply perm_type_trans.
@@ -90,7 +102,10 @@ Theorem permutation_type_cons_app : forall T (t : T) l l0 l1,
   simpl in *.
   apply permutation_type_reflexive.
   simpl in *.
-  assert (permutation_type (t :: a :: l0 ++ l1) (a :: t :: l0 ++ l1)).
+  assert (
+    permutation_type
+      (t :: a :: l0 ++ l1) 
+      (a :: t :: l0 ++ l1)).
   constructor.
   eapply perm_type_trans.
   exact X.
@@ -99,7 +114,10 @@ Theorem permutation_type_cons_app : forall T (t : T) l l0 l1,
   eapply perm_type_trans.
   exact X1.
   trivial.
-  assert (permutation_type (t :: l) (t :: l')).
+  assert (
+    permutation_type
+      (t :: l)
+      (t :: l')).
   constructor.
   trivial.
   eapply perm_type_trans.
@@ -158,9 +176,17 @@ Definition Permutation_permutation_type_inner :
   trivial.
 Defined.
 
-Theorem Permutation_permutation_type : forall T (l : list T) r (P : Permutation l r),
-  eq_dec T -> permutation_type l r.
+Theorem Permutation_permutation_type : forall T (l : list T) r
+  (P : Permutation l r), eq_dec T -> permutation_type l r.
   intros.
   eapply Permutation_permutation_type_inner;
   trivial.
 Defined.
+
+Theorem perm_swap_trans : forall T (l : list T) r tl tr,
+  Permutation l r -> Permutation (tl :: tr :: l) (tr :: tl :: r).
+  intros.
+  eapply (@perm_trans _ _ (tl :: tr :: r)).
+  auto.
+  constructor.
+Qed.

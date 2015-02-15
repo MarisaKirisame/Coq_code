@@ -2,7 +2,7 @@ Set Implicit Arguments.
 
 Require Import List Program Permutation ProofIrrelevance.
 
-Require Import hlist pos.
+Require Import eq_dec hlist pos remove.
 
 Theorem Permutation_occ : forall T (l : list T) r dec,
   Permutation l r -> forall t, count_occ dec r t = count_occ dec l t.
@@ -31,6 +31,12 @@ Section AST.
   Inductive s : Type := mks : forall T, contain S T -> s.
   Definition operator_inner (s' : s) := list s.
   Variable sdec : eq_dec s.
+  Definition oidec s : eq_dec (operator_inner s).
+    unfold operator_inner.
+    unfold eq_dec in *.
+    apply list_eq_dec.
+    trivial.
+  Defined.
   Section OS_no_change.
     Variable Os : forall (s' : s), list (operator_inner s').
       (*variable is just operator with arity nil*)
@@ -93,16 +99,6 @@ Section AST.
         { ls : list (operator_inner s'') |
             (s' = s'' -> Permutation ((get_arity v) :: ls) (Os s')) /\
             (s' <> s'' -> ls = Os s') }.
-      intros.
-      destruct (sdec s' s'').
-      subst.
-      destruct v.
-      destruct (remove p).
-      simpl in *.
-      exists x.
-      tauto.
-      exists (Os s').
-      intuition.
     Defined.
     Definition remove_operator s' (v : operator s') : 
       forall s'', list (operator_inner s'') := 
