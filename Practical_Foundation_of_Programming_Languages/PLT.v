@@ -43,8 +43,12 @@ Section AST.
     | mkop : forall o : operator_inner s', pos o (Os s') -> operator s'.
     Definition get_arity s' (ope : operator s') : list s := 
       match ope with mkop l _ => l end.
+    Definition get_pos s' (ope : operator s') : 
+      pos (get_arity ope) (Os s') :=
+      match ope with mkop _ p => p end.
     Definition get_type s' : Type := match s' with mks T _ => T end.
-    Definition get_arity_type s' (op : operator s') := map get_type (get_arity op).
+    Definition get_arity_type s' (op : operator s') := 
+      map get_type (get_arity op).
     Inductive AXs : Type -> Type :=
     | OAXs : forall s' (op : operator s'), 
         hlist (fun s' => AXs s') (get_arity_type op) -> AXs s.
@@ -132,7 +136,6 @@ Section AST.
       try apply list_eq_dec;
       trivial.
     Qed.
-
     Definition opdec : forall s', eq_dec (operator s').
       intros.
       destruct l, r;
@@ -153,7 +156,6 @@ Section AST.
     Defined.
   End OS_no_change.
   Global Arguments mkop { Os } { s' } { o } _.
-
   Definition loidec : forall s', eq_dec (list (operator_inner s')).
     intros.
     unfold eq_dec in *.
@@ -162,12 +164,20 @@ Section AST.
     repeat apply list_eq_dec.
     trivial.
   Defined.
-  Print operator.
   Definition update_operator (s' : s) Os (op op' : operator Os s') : 
     op <> op' -> 
       { newop : operator (remove_operator op') s' |
-        get_arity op = get_arity newop }.
-      (*match only the first one?*)
+          get_arity op = get_arity newop /\ 
+          ((pos_before (get_pos op)) = (pos_before (get_pos newop))\/
+          (pos_after (get_pos op)) = (pos_after (get_pos newop))) }.
+    destruct op, op'.
+    intros.
+    destruct (remove_operator_inner (mkop p0) s').
+    destruct x.
+    simpl in *.
+    assert (l ++ o0 :: l0 = Os s').
+    tauto.
+    clear a.
   Defined.
 
 End AST.
