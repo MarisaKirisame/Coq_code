@@ -37,14 +37,18 @@ Section AST.
     trivial.
   Defined.
   Section OS_no_change.
-    Variable Os : forall (s' : s), list (operator_inner s').
+    Inductive OperatorSet := 
+    | mkOS : (forall (s' : s), list (operator_inner s')) -> OperatorSet.
+    Variable Os : OperatorSet.
       (*variable is just operator with arity nil*)
+    Definition get_loi (s' : s) : list (operator_inner s') :=
+      match Os with mkOS P => P s' end.
     Inductive operator (s' : s) := 
-    | mkop : forall o : operator_inner s', pos o (Os s') -> operator s'.
+    | mkop : forall o : operator_inner s', pos o (get_loi s') -> operator s'.
     Definition get_arity s' (ope : operator s') : list s := 
       match ope with mkop l _ => l end.
     Definition get_pos s' (ope : operator s') : 
-      pos (get_arity ope) (Os s') :=
+      pos (get_arity ope) (get_loi s') :=
       match ope with mkop _ p => p end.
     Definition get_type s' : Type := match s' with mks T _ => T end.
     Definition get_arity_type s' (op : operator s') := 
@@ -93,26 +97,26 @@ Section AST.
     Definition adjoin s' (v : operator_inner s') :
       forall s'',
         { ls : list (operator_inner s') | 
-            (s' = s'' -> ls = v :: (Os s')) /\
-            (s' <> s'' -> ls = Os s') }.
+            (s' = s'' -> ls = v :: (get_loi s')) /\
+            (s' <> s'' -> ls = get_loi s') }.
       intros.
       destruct (sdec s' s'').
       subst.
       eauto with *.
-      exists (Os s').
+      exists (get_loi s').
       intuition.
     Defined.
     Definition remove_operator_inner s' (v : operator s') :
       forall s'',
-        { ls : (list (operator_inner s'')*list (operator_inner s'')) |
-            (s' = s'' -> fst ls ++ (get_arity v) :: snd ls = (Os s')) /\
-            (s' <> s'' -> fst ls = Os s' /\ snd ls = []) }.
+        { ls : (list (operator_inner s'') * list (operator_inner s'')) |
+            (s' = s'' -> fst ls ++ (get_arity v) :: snd ls = (get_loi s')) /\
+            (s' <> s'' -> fst ls = get_loi s' /\ snd ls = []) }.
       intros.
       destruct (sdec s' s'').
       subst.
       assert (
         {ls : list (operator_inner s'') * list (operator_inner s'') | 
-            fst ls ++ get_arity v :: snd ls = Os s'' }).
+            fst ls ++ get_arity v :: snd ls = get_loi s'' }).
       destruct v.
       destruct (remove_pos p).
       exists x.
@@ -121,15 +125,26 @@ Section AST.
       destruct X.
       exists x.
       tauto.
-      exists (Os s', @nil (operator_inner s'')).
+      exists (get_loi s', @nil (operator_inner s'')).
       tauto.
     Defined.
+    Definition remove_operator_inner_wrapper s' (v : operator s') :
+      { ls : forall s'',
+        (list (operator_inner s'')*list (operator_inner s'')) |
+          forall s'',
+            (s' = s'' -> fst (ls s'') ++ (get_arity v) :: snd (ls s'') =
+            (get_loi s')) /\
+            (s' <> s'' -> fst (ls s'') = get_loi s' /\ snd (ls s'') = []) }.
+      exists (fun s'' => ` (remove_operator_inner v s'')).
+      intros.
+      destruct remove_operator_inner.
+      trivial.
+    Defined.
     Definition remove_operator s' (v : operator s') : 
-      forall s'', list (operator_inner s'') := 
-        fun s'' => 
-          fst (proj1_sig (remove_operator_inner v s'')) ++ 
-          snd (proj1_sig (remove_operator_inner v s'')).
-    Theorem mkop_inj : forall s' vl (sl sr : pos vl (Os s')),
+      forall s'', list (operator_inner s'') :=
+        let lr := ` (remove_operator_inner_wrapper v) in fun s'' =>
+          fst (lr s'') ++ snd (lr s'').
+    Theorem mkop_inj : forall s' vl (sl sr : pos vl (get_loi s')),
       mkop sl = mkop sr -> sl = sr.
       inversion 1.
       apply Eqdep_dec.inj_pair2_eq_dec in H1;
@@ -172,12 +187,12 @@ Section AST.
           (pos_after (get_pos op)) = (pos_after (get_pos newop))) }.
     destruct op, op'.
     intros.
-    destruct (remove_operator_inner (mkop p0) s').
-    destruct x.
+    unfold remove_operator.
+    destruct (remove_operator_inner_wrapper).
     simpl in *.
-    assert (l ++ o0 :: l0 = Os s').
+    assert (fst (x s') ++ o0 :: snd (x s') = Os s').
+    specialize (a s').
     tauto.
-    clear a.
   Defined.
 
 End AST.
