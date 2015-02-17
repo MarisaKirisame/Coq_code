@@ -3,7 +3,7 @@ Require Import pos_prop tactic permutation_type count eq_dec pos remove.
 
 Set Implicit Arguments.
 
-Definition count_occ_lt_pos_find T (dec : eq_dec T)
+Definition count_occ_lt_find_pos T (dec : eq_dec T)
   t (l r : list T) (p : pos t l) : 
     count_occ dec (pos_before p) t < count_occ dec r t -> 
       { p' : pos t r |
@@ -597,7 +597,7 @@ Definition pos_neq_pos_before_pos_pos_after_pos T (t : T) l (p p' : pos t l)
   intuition.
 Defined.
 
-Definition remove_pos_join_eq T dec (t : T) l 
+Definition remove_pos_join_eq_find_pos T dec (t : T) l 
   (p p' : pos t l) (neq : p <> p') : pos t (remove_pos_join p) :=
   match pos_neq_pos_before_pos_pos_after_pos neq with
   | inl P => ` (remove_pos_join_pos_after_pos_find_pos dec P)

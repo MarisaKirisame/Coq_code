@@ -26,7 +26,7 @@ Definition pos_before T (t : T) l (p : pos t l) := firstn (pos_nat p) l.
 Definition pos_after T (t : T) l (p : pos t l) := skipn (S (pos_nat p)) l.
 
 Theorem pos_before_pos_after : forall T (t : T) lt (p : pos t lt),
-  pos_before p ++ [t] ++ pos_after p = lt.
+  pos_before p ++ t :: pos_after p = lt.
   induction p.
   trivial.
   simpl in *.

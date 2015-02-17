@@ -1,7 +1,7 @@
 Set Implicit Arguments.
 
 Require Import List Program Permutation ProofIrrelevance.
-Require Import tactic eq_dec hlist pos remove.
+Require Import count tactic eq_dec hlist pos remove find_pos.
 
 Theorem Permutation_occ : forall T (l : list T) r dec,
   Permutation l r -> forall t, count_occ dec r t = count_occ dec l t.
@@ -37,18 +37,14 @@ Section AST.
     trivial.
   Defined.
   Section OS_no_change.
-    Inductive OperatorSet := 
-    | mkOS : (forall (s' : s), list (operator_inner s')) -> OperatorSet.
-    Variable Os : OperatorSet.
+    Variable Os : (forall (s' : s), list (operator_inner s')).
       (*variable is just operator with arity nil*)
-    Definition get_loi (s' : s) : list (operator_inner s') :=
-      match Os with mkOS P => P s' end.
     Inductive operator (s' : s) := 
-    | mkop : forall o : operator_inner s', pos o (get_loi s') -> operator s'.
+    | mkop : forall o : operator_inner s', pos o (Os s') -> operator s'.
     Definition get_arity s' (ope : operator s') : list s := 
       match ope with mkop l _ => l end.
     Definition get_pos s' (ope : operator s') : 
-      pos (get_arity ope) (get_loi s') :=
+      pos (get_arity ope) (Os s') :=
       match ope with mkop _ p => p end.
     Definition get_type s' : Type := match s' with mks T _ => T end.
     Definition get_arity_type s' (op : operator s') := 
@@ -97,26 +93,26 @@ Section AST.
     Definition adjoin s' (v : operator_inner s') :
       forall s'',
         { ls : list (operator_inner s') | 
-            (s' = s'' -> ls = v :: (get_loi s')) /\
-            (s' <> s'' -> ls = get_loi s') }.
+            (s' = s'' -> ls = v :: (Os s')) /\
+            (s' <> s'' -> ls = Os s') }.
       intros.
       destruct (sdec s' s'').
       subst.
       eauto with *.
-      exists (get_loi s').
+      exists (Os s').
       intuition.
     Defined.
     Definition remove_operator_inner s' (v : operator s') :
       forall s'',
         { ls : (list (operator_inner s'') * list (operator_inner s'')) |
-            (s' = s'' -> fst ls ++ (get_arity v) :: snd ls = (get_loi s')) /\
-            (s' <> s'' -> fst ls = get_loi s' /\ snd ls = []) }.
+            (s' = s'' -> fst ls ++ (get_arity v) :: snd ls = (Os s')) /\
+            (s' <> s'' -> fst ls = Os s' /\ snd ls = []) }.
       intros.
       destruct (sdec s' s'').
       subst.
       assert (
         {ls : list (operator_inner s'') * list (operator_inner s'') | 
-            fst ls ++ get_arity v :: snd ls = get_loi s'' }).
+            fst ls ++ get_arity v :: snd ls = Os s'' }).
       destruct v.
       destruct (remove_pos p).
       exists x.
@@ -125,7 +121,7 @@ Section AST.
       destruct X.
       exists x.
       tauto.
-      exists (get_loi s', @nil (operator_inner s'')).
+      exists (Os s', @nil (operator_inner s'')).
       tauto.
     Defined.
     Definition remove_operator_inner_wrapper s' (v : operator s') :
@@ -133,8 +129,8 @@ Section AST.
         (list (operator_inner s'')*list (operator_inner s'')) |
           forall s'',
             (s' = s'' -> fst (ls s'') ++ (get_arity v) :: snd (ls s'') =
-            (get_loi s')) /\
-            (s' <> s'' -> fst (ls s'') = get_loi s' /\ snd (ls s'') = []) }.
+            (Os s')) /\
+            (s' <> s'' -> fst (ls s'') = Os s' /\ snd (ls s'') = []) }.
       exists (fun s'' => ` (remove_operator_inner v s'')).
       intros.
       destruct remove_operator_inner.
@@ -144,13 +140,20 @@ Section AST.
       forall s'', list (operator_inner s'') :=
         let lr := ` (remove_operator_inner_wrapper v) in fun s'' =>
           fst (lr s'') ++ snd (lr s'').
-    Theorem mkop_inj : forall s' vl (sl sr : pos vl (get_loi s')),
+    Theorem mkop_inj : forall s' vl (sl sr : pos vl (Os s')),
       mkop sl = mkop sr -> sl = sr.
       inversion 1.
       apply Eqdep_dec.inj_pair2_eq_dec in H1;
       try apply list_eq_dec;
       trivial.
     Qed.
+    Theorem mkop_neq_inj : forall s' vl (sl sr : pos vl (Os s')),
+      mkop sl <> mkop sr -> sl <> sr.
+      intros.
+      intuition.
+      subst.
+      tauto.
+    Defined.
     Definition opdec : forall s', eq_dec (operator s').
       intros.
       destruct l, r;
@@ -185,23 +188,75 @@ Section AST.
           get_arity op = get_arity newop /\ 
           ((pos_before (get_pos op)) = (pos_before (get_pos newop))\/
           (pos_after (get_pos op)) = (pos_after (get_pos newop))) }.
-    destruct op, op'.
     intros.
-    unfold remove_operator.
-    destruct (remove_operator_inner_wrapper).
+    destruct op, op';
     simpl in *.
-    assert (fst (x s') ++ o0 :: snd (x s') = Os s').
-    specialize (a s').
+    destruct (oidec o o0).
+    subst.
+    apply mkop_neq_inj in H.
+    admit.
+    destruct (remove_pos_join_neq_find_pos (@oidec s') p p0 n).
+    unfold remove_operator.
+    unfold remove_pos_join in *.
+    destruct remove_pos.
+    destruct remove_operator_inner_wrapper.
+    simpl in *.
+    destruct x0;
+    simpl in *;
+    intuition.
+    specialize (H1 (@oidec s')).
+    assert (fst (x1 s') ++ o0 :: snd (x1 s') = Os s').
+    specialize (a0 s').
     tauto.
+    clear a0.
+    destruct (@count_occ_lt_find_pos
+      _
+      (@oidec s')
+      o
+      (Os s')
+      (fst (x1 s') ++ snd (x1 s'))
+      p).
+    replace 
+      (count_occ (oidec (s:=s')) (fst (x1 s') ++ snd (x1 s')) o) with
+      (count_occ (oidec (s:=s')) (Os s') o).
+    replace 
+      (count_occ (oidec (s:=s')) (Os s') o) with
+      (count_occ (oidec (s:=s')) (l ++ o :: l0) o).
+    rewrite count_occ_app.
+    simpl in *.
+    dedec (@oidec s').
+    omega.
+    tauto.
+    f_equal.
+    auto.
+    rewrite <- H2.
+    repeat rewrite count_occ_app.
+    simpl in *.
+    dedec (@oidec s').
+    subst.
+    tauto.
+    trivial.
+    exists (@mkop (fun s'' : s => fst (x1 s'') ++ snd (x1 s'')) _ _ x0).
+    simpl in *.
+    split.
+    trivial.
+    destruct (pos_app (fst (x1 s')) (snd (x1 s')) x0);
+    destruct s0.
+    left.
+    admit (**).
+    right.
+    admit (**).
   Defined.
-
 End AST.
-Extraction ast_size. (*Testing if AST_rect is useful*)(*should not be defined with AST_size*)
+Extraction ast_size. (*Testing if AST_rect is useful*)
+  (*should not be defined with AST_size*)
 
 Definition AST_substitute S Os T s' sdec
   (op : @operator S Os s') (ast : AXs Os T)
     (f : ihlist (fun s' => AXs Os s') (get_arity_type op) -> 
-      ihlist (fun s' => AXs (remove_operator sdec op) s') (get_arity_type op))
+      ihlist
+        (fun s' => AXs (remove_operator sdec op) s')
+        (get_arity_type op))
   : AXs (remove_operator sdec op) T.
   eapply AST_rect;
   eauto.
@@ -222,7 +277,8 @@ Definition subst { S S' } (s : S)(Heq : S ~= S') : {s' : S' | s ~= s' }.
   trivial.
 Defined.
 
-Theorem subst_eq : forall S (eq : S ~= S)(s : S), JMeq s (proj1_sig(subst s eq)).
+Theorem subst_eq : forall S (eq : S ~= S)(s : S), 
+  JMeq s (proj1_sig(subst s eq)).
   intros.
   destruct (subst s0 eq).
   trivial.

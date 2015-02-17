@@ -12,7 +12,7 @@ Fixpoint count_true (T : Type) (P : T -> bool) (l : list T) :=
 Definition count_false (T : Type) (P : T -> bool) (l : list T) :=
   count_true (fun x => negb (P x)) l.
 
-Theorem conunt_length : forall T p (l : list T), count_true p l + count_false p l = length l.
+Theorem count_length : forall T p (l : list T), count_true p l + count_false p l = length l.
   intros.
   induction l.
   trivial.
