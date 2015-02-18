@@ -597,12 +597,23 @@ Definition pos_neq_pos_before_pos_pos_after_pos T (t : T) l (p p' : pos t l)
   intuition.
 Defined.
 
-Definition remove_pos_join_eq_find_pos T dec (t : T) l 
-  (p p' : pos t l) (neq : p <> p') : pos t (remove_pos_join p) :=
-  match pos_neq_pos_before_pos_pos_after_pos neq with
-  | inl P => ` (remove_pos_join_pos_after_pos_find_pos dec P)
-  | inr P => ` (remove_pos_join_pos_before_pos_find_pos dec P)
-  end.
+Definition remove_pos_join_eq_find_pos T (dec : eq_dec T) (t : T) l 
+  (p p' : pos t l) (neq : p <> p') :
+    { P : pos t (remove_pos_join p) |
+        pos_before P = pos_before p' \/
+        pos_after P = pos_after p' }.
+  destruct (pos_neq_pos_before_pos_pos_after_pos neq);
+  [
+    exists (` (remove_pos_join_pos_after_pos_find_pos dec p0))|
+    exists (` (remove_pos_join_pos_before_pos_find_pos dec p0))
+  ];
+  [
+    destruct remove_pos_join_pos_after_pos_find_pos|
+    destruct remove_pos_join_pos_before_pos_find_pos
+  ];
+  simpl in *;
+  tauto.
+Defined.
 
 Definition remove_pos_join_neq_pos_eq T dec (t t' : T) (neq : t <> t')
   l (p : pos t l) (p_before : pos t' l)
