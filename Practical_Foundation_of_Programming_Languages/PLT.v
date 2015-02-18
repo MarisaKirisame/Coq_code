@@ -236,6 +236,24 @@ Section AST.
     subst.
     tauto.
     trivial.
+    assert (l = pos_before p).
+    eapply (count_occ_app_head o (@oidec s') _ l0 _ (pos_after p)).
+    rewrite pos_before_pos_after.
+    auto.
+    trivial.
+    subst.
+    assert (l0 = pos_after p).
+    assert (Os s' = pos_before p ++ o :: pos_after p).
+    rewrite pos_before_pos_after.
+    trivial.
+    assert (pos_before p ++ o :: l0 = pos_before p ++ o :: pos_after p).
+    rewrite <- H3.
+    auto.
+    apply app_inv_head in H4.
+    invc H4.
+    trivial.
+    subst.
+    clear H0 H1.
     exists (@mkop (fun s'' : s => fst (x1 s'') ++ snd (x1 s'')) _ _ x0).
     simpl in *.
     split.
@@ -243,9 +261,53 @@ Section AST.
     destruct (pos_app (fst (x1 s')) (snd (x1 s')) x0);
     destruct s0.
     left.
-    admit (**).
+    assert (pos_before p = pos_before x0).
+    rewrite <- e1.
+    eapply (count_occ_app_head o (@oidec s') _ (pos_after p) _ 
+      ((pos_after x2) ++ o0 :: snd (x1 s'))).
+    assert (pos_before p ++ o :: (pos_after p) =
+      (pos_before x2 ++ o :: pos_after x2) ++ o0 :: snd (x1 s')).
+    repeat rewrite pos_before_pos_after.
+    auto.
+    rewrite pos_before_pos_after.
+    replace
+      (pos_before x2 ++ o :: pos_after x2 ++ o0 :: snd (x1 s')) with
+      ((pos_before x2 ++ o :: pos_after x2) ++ o0 :: snd (x1 s')).
+    rewrite pos_before_pos_after.
+    auto.
+    rewrite <- app_assoc.
+    trivial.
+    rewrite e1.
+    auto.
+    trivial.
     right.
-    admit (**).
+    assert (pos_after x0 = pos_after x2).
+    eapply (count_occ_app_tail o (@oidec s')
+      (pos_before x0) _ (pos_before x0) _).
+    rewrite <- e1 at 2.
+    rewrite <- app_assoc.
+    rewrite pos_before_pos_after.
+    rewrite pos_before_pos_after.
+    trivial.
+    trivial.
+    assert (pos_after p = pos_after x0).
+    rewrite H0.
+    eapply (count_occ_app_tail o (@oidec s')
+      (pos_before p) _ ((fst (x1 s')) ++ o0 :: pos_before x2) _).
+    rewrite pos_before_pos_after.
+    rewrite <- app_assoc.
+    simpl in *.
+    rewrite pos_before_pos_after.
+    auto.
+    rewrite count_occ_app.
+    simpl in *.
+    destruct (oidec o0 o).
+    subst.
+    tauto.
+    rewrite <- count_occ_app.
+    rewrite e1.
+    auto.
+    trivial.
   Defined.
 End AST.
 Extraction ast_size. (*Testing if AST_rect is useful*)
@@ -253,8 +315,8 @@ Extraction ast_size. (*Testing if AST_rect is useful*)
 
 Definition AST_substitute S Os T s' sdec
   (op : @operator S Os s') (ast : AXs Os T)
-    (f : ihlist (fun s' => AXs Os s') (get_arity_type op) -> 
-      ihlist
+    (f : hlist (fun s' => AXs Os s') (get_arity_type op) -> 
+      hlist
         (fun s' => AXs (remove_operator sdec op) s')
         (get_arity_type op))
   : AXs (remove_operator sdec op) T.
