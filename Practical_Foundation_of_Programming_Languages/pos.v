@@ -330,4 +330,4 @@ Theorem pos_skip_neq : forall T (e : T) t l (p p' : pos t l),
   intuition.
   subst.
   tauto.
-Defined.
+Qed.

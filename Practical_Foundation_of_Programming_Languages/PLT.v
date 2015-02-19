@@ -1,7 +1,7 @@
 Set Implicit Arguments.
 
 Require Import Arith List Program Permutation ProofIrrelevance.
-Require Import count tactic eq_dec hlist pos remove find_pos.
+Require Import pos_prop count tactic eq_dec hlist pos remove find_pos.
 
 Theorem Permutation_occ : forall T (l : list T) r dec,
   Permutation l r -> forall t, count_occ dec r t = count_occ dec l t.
@@ -200,102 +200,48 @@ Section AST.
     destruct (oidec o o0).
     subst.
     apply mkop_neq_inj in H.
-    destruct (@count_occ_lt_find_pos
-      _
-      (@oidec s')
-      o0
-      (Os s')
-      (fst (x s') ++ snd (x s'))
-      p).
-    admit (**).
-    admit (**).
-    (*exists (@mkop (fun s'' : s => fst (x s'') ++ snd (x s'')) _ _ x).
-    simpl in *.
-    split.
-    trivial.
-    destruct (pos_app (fst (x s')) (snd (x s')) x0);
-    destruct s0.
-    left.*)
-    destruct (@count_occ_lt_find_pos
-      _
-      (@oidec s')
-      o0
-      (Os s')
-      (fst (x s') ++ snd (x s'))
-      p0).
-    replace 
-      (count_occ (oidec (s:=s')) (fst (x s') ++ snd (x s')) o0) with
-      (count_occ (oidec (s:=s')) (Os s') o0).
+    destruct (pos_neq_pos_before_pos_or_pos_after_pos H).
+    destruct
+      (count_occ_lt_find_pos (@oidec s') (fst (x s') ++ snd (x s')) p).
     replace
-      (count_occ (@oidec s') (Os s') o0) with
-      (count_occ (@oidec s') (pos_before p0 ++ o0 :: pos_after p0) o0).
+      (count_occ (oidec (s:=s')) (fst (x s') ++ snd (x s')) o0) with
+      (count_occ (oidec (s:=s')) (Os s') o0 - 1).
+    assert (
+      count_occ (oidec (s:=s')) (pos_before p) o0 <
+      count_occ (oidec (s:=s')) (pos_before p0) o0).
+    
+    admit (**).
+    assert (
+      count_occ (oidec (s:=s')) (pos_before p0) o0 < 
+      count_occ (oidec (s:=s')) (Os s') o0).
+    assert (
+      count_occ (oidec (s:=s')) (Os s') o0 = 
+      count_occ (oidec (s:=s')) (fst (x s') ++ o0 :: snd (x s')) o0).
+    f_equal.
+    auto.
+    rewrite H1.
     rewrite count_occ_app.
     simpl in *.
-    dedec (@oidec s').
-    omega.
+    destruct (oidec o0 o0).
+    admit (**).
     tauto.
-    rewrite pos_before_pos_after.
-    trivial.
+    omega.
     rewrite <- H2.
     repeat rewrite count_occ_app.
     simpl in *.
-    dedec (@oidec s').
-    subst.
+    destruct (oidec o0 o0).
+    omega.
     tauto.
-    trivial.
+    destruct (pos_app _ _ x0);
+    destruct s0.
     exists (@mkop (fun s'' : s => fst (x s'') ++ snd (x s'')) _ _ x0).
     simpl in *.
     split.
     trivial.
-    destruct (pos_app (fst (x s')) (snd (x s')) x0);
-    destruct s0.
     left.
-    assert (pos_before p = pos_before x0).
-    rewrite <- e0.
-    eapply (count_occ_app_head o (@oidec s') _ (pos_after p) _ 
-      ((pos_after x1) ++ o0 :: snd (x s'))).
-    assert (pos_before p ++ o :: (pos_after p) =
-      (pos_before x1 ++ o :: pos_after x1) ++ o0 :: snd (x s')).
-    repeat rewrite pos_before_pos_after.
-    auto.
-    rewrite pos_before_pos_after.
-    replace
-      (pos_before x1 ++ o :: pos_after x1 ++ o0 :: snd (x s')) with
-      ((pos_before x1 ++ o :: pos_after x1) ++ o0 :: snd (x s')).
-    rewrite pos_before_pos_after.
-    auto.
-    rewrite <- app_assoc.
-    trivial.
-    rewrite e0.
-    auto.
-    trivial.
-    right.
-    assert (pos_after x0 = pos_after x1).
-    eapply (count_occ_app_tail o (@oidec s')
-      (pos_before x0) _ (pos_before x0) _).
-    rewrite <- e0 at 2.
-    rewrite <- app_assoc.
-    repeat rewrite pos_before_pos_after.
-    trivial.
-    trivial.
-    assert (pos_after p = pos_after x0).
-    rewrite H0.
-    eapply (count_occ_app_tail o (@oidec s')
-      (pos_before p) _ ((fst (x s')) ++ o0 :: pos_before x1) _).
-    rewrite pos_before_pos_after.
-    rewrite <- app_assoc.
-    simpl in *.
-    rewrite pos_before_pos_after.
-    auto.
-    rewrite count_occ_app.
-    simpl in *.
-    destruct (oidec o0 o).
-    subst.
-    tauto.
-    rewrite <- count_occ_app.
-    rewrite e0.
-    auto.
-    trivial.
+    admit (**).
+    admit (**).
+    admit (**).
   Defined.
 End AST.
 Extraction ast_size. (*Testing if AST_rect is useful*)
