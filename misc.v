@@ -1,13 +1,6 @@
-Require Import
-  Arith
-  Omega
-  Recdef.
+Set Implicit Arguments.
 
-Definition sig_extract: forall (A:Set) (P:A -> Prop), sig P -> A.
-  intros.
-  destruct H.
-  auto.
-Defined.
+Require Import Program Arith Omega Recdef.
 
 Theorem minus_plus_equal n m : ~ n < m -> n - m + m = n.
   omega.
@@ -17,24 +10,24 @@ Function nat_n_rect
   (step : {n : nat | n > 0})
     (n : nat)
       (P : nat -> Type)
-        (p2 : (forall m, m < (sig_extract _ _ step) -> P m))
-          (p3 : (forall n, P n -> P (n + (sig_extract _ _ step)))) 
+        (p2 : (forall m, m < (` step) -> P m))
+          (p3 : (forall n, P n -> P (n + (` step)))) 
             { wf lt n } :
               P n :=
-  match lt_dec n (sig_extract _ _ step) with
+  match lt_dec n (` step) with
   | left p => p2 _ p
   | right p => 
-      (fun x : (n - (sig_extract _ _ step) + (sig_extract _ _ step) = n) =>
+      (fun x : (n - (` step) + (` step) = n) =>
         eq_rect
-          (n - (sig_extract _ _ step) + (sig_extract _ _ step))
+          (n - (` step) + (` step))
           P
-          (p3 (n - (sig_extract _ _ step))(nat_n_rect step (n - (sig_extract _ _ step)) P p2 p3))
+          (p3 (n - (` step))(nat_n_rect step (n - (` step)) P p2 p3))
           n
           x)
-      (minus_plus_equal n (sig_extract _ _ step) p)
+      (minus_plus_equal p)
   end.
   destruct step.
-  unfold sig_extract.
+  unfold proj1_sig.
   intros.
   omega.
   unfold well_founded.
