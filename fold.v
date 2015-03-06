@@ -399,10 +399,26 @@ Goal forall a, @foldl_groupBy a = @groupBy a.
   intros.
   auto.
 Qed.
-any
 
-cycle
+Fixpoint any a (P : a -> bool) l : bool :=
+  match l with
+  | nil => false
+  | l_head :: l_tail => orb (P l_head) (any P l_tail)
+  end.
 
-words
+Definition foldr_any a (P : a -> bool) (l : list a) : bool := 
+  foldr (fun l r => orb (P l) r) false l.
 
-unlines
+Goal forall a, @foldr_any a = @any a.
+  intros.
+  apply functional_extensionality.
+  intros.
+  apply functional_extensionality.
+  intros.
+  induction x0.
+  trivial.
+  unfold foldr_any in *.
+  simpl in *.
+  f_equal.
+  trivial.
+Qed.
