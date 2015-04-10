@@ -1,4 +1,4 @@
-Require Import Arith Recdef Omega.
+Require Import Arith Recdef Omega Program.
 
 Set Implicit Arguments.
 
@@ -167,6 +167,44 @@ Fixpoint Normalize b :=
     end
   end.
 
+Inductive Normalized : bnat -> Prop :=
+| Normalized_BZero : Normalized BZero
+| Normalized_BEven : forall n, n <> BZero -> Normalized n -> Normalized (BEven n)
+| Normalized_BOdd : forall n, Normalized n -> Normalized (BOdd n).
+
+Goal ~Normalized (BEven BZero).
+  intuition.
+  dependent induction H.
+  tauto.
+Qed.
+
+Theorem Normalize_Normalized : forall n, Normalized (Normalize n).
+  induction n;
+  simpl in *;
+  try solve [constructor].
+  inversion IHn;
+  constructor;
+  try discriminate;
+  try rewrite H;
+  trivial.
+  constructor.
+  trivial.
+Qed.
+
+Theorem double_normalize b : Normalize (Normalize b) = Normalize b.
+  induction b;
+  intros;
+  trivial;
+  simpl in *;
+  destruct (Normalize b);
+  trivial;
+  simpl in *;
+  destruct (Normalize b0);
+  try discriminate;
+  f_equal;
+  trivial.
+Qed.
+
 Theorem BPlus_correct :
   forall b m, bnat_to_nat (BPlus b m) = (bnat_to_nat b) + m.
   intros.
@@ -177,7 +215,7 @@ Theorem BPlus_correct :
   omega.
 Qed.
 
-Theorem eq_BPlus : forall n, nat_to_bnat n = BPlus BZero n.
+Theorem nat_to_bnat_n_BPlus_BZero_n : forall n, nat_to_bnat n = BPlus BZero n.
   induction n.
   trivial.
   simpl in *.
@@ -185,7 +223,18 @@ Theorem eq_BPlus : forall n, nat_to_bnat n = BPlus BZero n.
   trivial.
 Qed.
 
-Goal forall n, bnat_to_nat (nat_to_bnat n) = n.
+Theorem nat_to_bnat_BPlus l r : nat_to_bnat (l + r) = BPlus (nat_to_bnat l) r.
+  induction r;
+  intros.
+  simpl in *.
+  auto.
+  rewrite Nat.add_succ_r.
+  simpl in *.
+  f_equal.
+  trivial.
+Qed.
+
+Theorem bnat_to_nat_correct n : bnat_to_nat (nat_to_bnat n) = n.
   induction n.
   trivial.
   simpl in *.
@@ -207,14 +256,10 @@ Theorem Normalize_correct : forall b,
   induction b.
   trivial.
   simpl in *.
-  replace
-    (bnat_to_nat b + (bnat_to_nat b + 0)) with
-    (bnat_to_nat b + bnat_to_nat b).
-  remember(Normalize b).
-  destruct b0;
+  rewrite Nat.add_0_r in *.
+  destruct (Normalize b) eqn:Heq;
   simpl in *;
   omega.
-  auto.
   simpl in *.
   auto.
 Qed.
@@ -239,9 +284,8 @@ Theorem Normalize_BEven_Greater :
   try discriminate.
   intros.
   simpl in *.
-  remember(Normalize b).
-  destruct b0.
-  admit.
+  destruct(Normalize b) eqn:Heq.
+  discriminate.
   inversion H.
   subst.
   assert(bnat_to_nat b > 0).
@@ -255,71 +299,143 @@ Theorem Normalize_BEven_Greater :
   omega.
 Qed.
 
-Goal forall b, nat_to_bnat (bnat_to_nat b) = Normalize b.
+Theorem bnat_to_nat_normalize b : bnat_to_nat b = 0 -> Normalize b = BZero.
+  intros.
+  induction b.
+  trivial.
+  simpl in *.
+  rewrite plus_0_r in *.
+  assert(bnat_to_nat b = 0).
+  omega.
+  intuition.
+  rewrite H1.
+  trivial.
+  simpl in *.
+  omega.
+Qed.
+
+Theorem normalize_bnat_to_nat b : Normalize b = BZero -> bnat_to_nat b = 0.
   intros.
   induction b;
   trivial;
   simpl in *;
-  try rewrite plus_0_r in *.
-  remember(Normalize b).
-  destruct b0.
+  destruct Normalize;
+  intuition;
+  discriminate.
+Qed.
+
+Theorem BOdd_BInc b : BOdd b = BInc (BEven b).
+  trivial.
+Qed.
+
+Theorem nat_to_bnat_BEven b : b > 0 -> nat_to_bnat (b + b) = BEven (nat_to_bnat b).
   induction b;
-  trivial;
-  simpl in *.
-  remember(Normalize b).
-  destruct b0.
-  rewrite <- Normalize_correct.
-  rewrite <- Heqb1.
-  trivial.
-  discriminate.
-  discriminate.
-  discriminate.
-  remember(@Normalize_BEven_Greater b b0).
-  clear Heqg.
-  remember (bnat_to_nat b).
-  destruct n.
-  discriminate.
-  simpl in *.
-  rewrite plus_comm.
-  simpl in *.
-  rewrite <- IHb.
-  clear Heqn.
-  clear IHb.
-  clear g.
-  induction n.
+  simpl in *;
+  intros.
+  omega.
+  destruct b.
   trivial.
   simpl in *.
-  rewrite plus_comm.
+  rewrite Nat.add_succ_r.
   simpl in *.
-  rewrite IHn.
-  trivial.
-  remember(Normalize b).
-  destruct b1.
-  discriminate.
-  discriminate.
-  inversion Heqb0.
-  subst.
-  rewrite <- IHb.
-  destruct(bnat_to_nat b).
-  discriminate.
-  clear IHb.
-  induction n.
-  trivial.
-  simpl in *.
-  rewrite plus_comm in *.
-  simpl in *.
-  rewrite IHn.
-  trivial.
-  rewrite <- IHb.
-  clear IHb.
-  induction(bnat_to_nat b).
-  trivial.
-  simpl in *.
-  replace (n + S n + 1) with (S n + n + 1).
-  simpl in *.
-  rewrite IHn.
+  rewrite IHb.
   trivial.
   omega.
+Qed.
+
+Theorem nat_to_bnat_BOdd b : nat_to_bnat (S b + b) = BOdd (nat_to_bnat b).
+  simpl in *.
+  destruct b.
+  trivial.
+  rewrite nat_to_bnat_BEven.
+  trivial.
+  omega.
+Qed.
+
+Theorem nat_to_bnat_normalized n : Normalized (nat_to_bnat n).
+  induction n;
+  simpl in *.
+  constructor.
+  induction IHn;
+  simpl in *;
+  constructor.
+  constructor.
+  trivial.
+  destruct n0;
+  discriminate.
+  trivial.
+Qed.
+
+Theorem BEven_BInc_BInc_BInc_BEven n : BEven (BInc n) = BInc (BInc (BEven n)).
+  trivial.
+Qed.
+
+Theorem BPlus_BInc_BInc_BPlus : forall n b, BPlus (BInc b) n = BInc (BPlus b n).
+  induction n.
+  trivial.
+  intros.
+  simpl in *.
+  f_equal.
+  trivial.
+Qed.
+
+Theorem nat_to_bnat_correct_helper b : Normalized b -> nat_to_bnat (bnat_to_nat b) = b.
+  induction 1;
+  trivial;
+  simpl in *;
+  rewrite plus_0_r;
+  repeat (rewrite nat_to_bnat_BPlus;simpl in *);
+  [|
+    assert(n = BZero \/ n <> BZero);
+    [
+      destruct n;
+      try tauto;
+      right;
+      discriminate|
+    ];
+    destruct H0;
+    try subst;
+    trivial;
+    rewrite BOdd_BInc;
+    f_equal;
+    rename H into H1;
+    rename H0 into H;
+    rename H1 into H0
+  ];
+  (rewrite <- IHNormalized;
+  clear IHNormalized;
+  assert(bnat_to_nat n > 0);
+  [
+    induction H0;
+    simpl in *;
+    intuition|
+  ];
+  induction (bnat_to_nat n);
+  try omega;
+  assert(n0 > 0 \/ n0 = 0);
+  try omega;
+  destruct H2;
+  subst;
+  trivial;
+  simpl in *;
+  rewrite BEven_BInc_BInc_BInc_BEven;
+  rewrite BInc_correct;
+  rewrite bnat_to_nat_correct in *;
+  rewrite <- IHn0;
+  trivial;
+  simpl in *;
+  rewrite BPlus_BInc_BInc_BPlus;
+  trivial).
+Qed.
+
+Theorem nat_to_bnat_correct b : nat_to_bnat (bnat_to_nat b) = Normalize b.
+  rewrite <- (bnat_to_nat_correct (bnat_to_nat b)).
+  rewrite <- nat_to_bnat_correct_helper.
+  rewrite nat_to_bnat_correct_helper.
+  rewrite Normalize_correct.
+  trivial.
+  apply nat_to_bnat_normalized.
+  apply Normalize_Normalized.
 Qed.
 
 Fixpoint evenb (n:nat) : bool :=
