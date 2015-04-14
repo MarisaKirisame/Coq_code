@@ -1,18 +1,13 @@
+Require Import List.
+
+Set Implicit Arguments.
+
 Inductive Tree : Set :=
 | Root
 | Branch : Tree -> Tree -> Tree.
 
-Require Import List.
-
-Fixpoint AllRoot(l : list Tree) :=
-  match l with
-  | nil => true
-  | l_head :: l_tail =>
-      match l_head with
-      | Root => AllRoot l_tail
-      | Branch _ _ => false
-      end
-  end.
+Definition AllRoot(l : list Tree) := 
+  forallb (fun e => match e with Root => true | _ => false end) l.
 
 Definition Combine(T1 T2 T3 T4 T5 T6 T7 : Tree) : Tree :=
   match AllRoot (T1 :: T2 :: T3 :: T4 :: nil) with
@@ -33,94 +28,80 @@ Definition Combine(T1 T2 T3 T4 T5 T6 T7 : Tree) : Tree :=
       end
   end.
 
+Ltac clean :=
+  repeat (
+    match goal with
+    | h : ?x = ?x |- _ => clear h
+    | h : Tree |- _ => clear h
+    | _ => idtac end).
+Ltac l T := assert(T = Root);[solve [trivial]|];clean;simpl in *.
+Ltac get_goal := match goal with |- ?x => x end.
+Ltac r T :=
+  match get_goal with ?x => assert (exists T1 T2 : Tree, T = Branch T1 T2 /\ x) end;
+  [
+    econstructor;
+    econstructor;
+    (split;[solve [trivial]|])|
+    simpl in *;
+    repeat(
+      match goal with
+      | h : exists _, _ |- _ => destruct h
+      | _ => idtac end);
+    tauto
+  ];
+  clean;simpl in *.
+
+Ltac act :=
+  solve[trivial]+
+  multimatch get_goal with
+  | context f [match ?X with _ => _ end] => 
+      is_evar X;assert(@eq Tree X X);[solve [trivial]|clean];l X
+  end+
+  multimatch get_goal with
+  | context f [match ?X with _ => _ end] => 
+      is_evar X;assert(@eq Tree X X);[solve [trivial]|clean];r X
+  end.
+
+Ltac work := repeat econstructor;simpl;solve [repeat act].
 Definition Split(T : Tree) :
-  { T1 : Tree & 
-    { T2 : Tree & 
+  { T1 : Tree &
+    { T2 : Tree &
       { T3 : Tree &
-        { T4 : Tree & 
-          { T5 : Tree & 
+        { T4 : Tree &
+          { T5 : Tree &
             { T6 : Tree &
               { T7 : Tree | Combine T1 T2 T3 T4 T5 T6 T7 = T } } } } } } }.
+  unfold Combine.
   destruct T.
-  do 7 (exists Root).
-  trivial.
+  work.
   destruct T1.
-  do 6 (exists Root).
-  exists (Branch Root T2).
-  trivial.
+  work.
   destruct T1_1.
-  do 6 (exists Root).
-  exists (Branch (Branch Root T1_2) T2).
-  trivial.
+  work.
   destruct T1_1_1.
-  do 6 (exists Root).
-  exists (Branch (Branch (Branch Root T1_1_2) T1_2) T2).
-  trivial.
+  work.
   destruct T1_1_1_1.
-  do 4 (exists Root).
-  exists (Branch T1_2 T2).
-  exists T1_1_2.
-  exists T1_1_1_2.
-  trivial.
+  work.
   destruct T1_1_1_1_1.
-  do 6 (exists Root).
-  exists (Branch (Branch (Branch (Branch T1_1_1_1_2 T1_1_1_2) T1_1_2) T1_2) T2).
-  trivial.
+  work.
   destruct T1_1_1_2.
   destruct T1_1_2.
   destruct T1_2.
   destruct T2.
-  do 5 (exists Root).
-  exists (Branch T1_1_1_1_1_1 T1_1_1_1_1_2).
-  exists T1_1_1_1_2.
-  trivial.
+  work.
   exists (Branch T2_1 T2_2).
-  do 3 (exists Root).
-  exists T1_1_1_1_2.
-  exists T1_1_1_1_1_2.
-  exists T1_1_1_1_1_1.
-  trivial.
-  exists T2.
-  exists (Branch T1_2_1 T1_2_2).
-  do 2 (exists Root).
-  exists T1_1_1_1_2.
-  exists T1_1_1_1_1_2.
-  exists T1_1_1_1_1_1.
+  work.
+  exists T2;
   destruct T2;
-  trivial.
-  exists T2.
-  exists T1_2.
-  exists (Branch T1_1_2_1 T1_1_2_2).
-  exists Root.
-  exists T1_1_1_1_2.
-  exists T1_1_1_1_1_2.
-  exists T1_1_1_1_1_1.
+  exists (Branch T1_2_1 T1_2_2);
+  work.
+  exists T2;
+  exists T1_2;
   destruct T2, T1_2;
-  trivial.
+  work.
   exists T2.
   exists T1_2.
   exists T1_1_2.
-  exists (Branch T1_1_1_2_1 T1_1_1_2_2).
-  exists T1_1_1_1_2.
-  exists T1_1_1_1_1_2.
-  exists T1_1_1_1_1_1.
-  destruct T2, T1_2, T1_1_2; trivial.
+  destruct T2, T1_2, T1_1_2;
+  work.
 Defined.
-
-Goal forall T1 T2 T3 T4 T5 T6 T7 : Tree, 
-  match Split (Combine T1 T2 T3 T4 T5 T6 T7) with
-  | existT T1' (existT T2' (existT T3' (existT T4' (existT T5' (existT T6' (exist T7' _)))))) => 
-      T1 = T1' /\ T2 = T2' /\ T3 = T3' /\ T4 = T4' /\ T5 = T5' /\ T6 = T6' /\ T7 = T7'
-  end.
-  intros.
-  destruct T1, T2, T3, T4, T5, T6, T7;
-  simpl;
-  try tauto.
-  refine(
-    match T7_1 with
-    | (Branch (Branch (Branch (Branch _ _) _) _) _) => _
-    | _ => _
-    end);
-  simpl;
-  tauto.
-Qed.
