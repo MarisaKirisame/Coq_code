@@ -63,9 +63,10 @@ Ltac dor :=
       is_evar X;assert(@eq Tree X X);[solve [trivial]|clean];r X
   end.
 
-Ltac act := solve[trivial]+dol+dor.
-
+Ltac act :=
+  f_equal;(solve[trivial]+dol+dor(*+match get_goal with Branch _ _ = ?X => destruct X end*)).
 Ltac work := repeat econstructor;simpl;solve [repeat act].
+
 Definition Split(T : Tree) :
   { T1 : Tree &
     { T2 : Tree &
@@ -75,7 +76,6 @@ Definition Split(T : Tree) :
             { T6 : Tree &
               { T7 : Tree | Combine T1 T2 T3 T4 T5 T6 T7 = T } } } } } } }.
   unfold Combine.
-  simpl in *.
   destruct T.
   work.
   destruct T1.
@@ -88,16 +88,6 @@ Definition Split(T : Tree) :
   work.
   destruct T1_1_1_1_1.
   work.
-  destruct T1_1_1_2.
-  destruct T1_1_2.
-  destruct T1_2.
-  destruct T2.
-  work.
-  work.
-  destruct T2;
-  work.
-  destruct T2, T1_2;
-  work.
-  destruct T2, T1_2, T1_1_2;
+  destruct T2, T1_2, T1_1_2, T1_1_1_2;
   work.
 Defined.
