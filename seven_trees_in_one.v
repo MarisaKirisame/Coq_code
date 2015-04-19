@@ -54,22 +54,16 @@ Ltac r T :=
 Ltac dol :=
   match get_goal with
   | context f [match ?X with _ => _ end] => 
-      is_evar X;assert(@eq Tree X X);[solve [trivial]|clean];l X
+      clean;l X
   end.
 
 Ltac dor :=
   match get_goal with
   | context f [match ?X with _ => _ end] => 
-      is_evar X;assert(@eq Tree X X);[solve [trivial]|clean];r X
+      clean;r X
   end.
-Ltac print := match get_goal with ?x => idtac x end.
-Ltac act :=
-  (match get_goal with
-  | Branch _ _ = Root => fail
-  | Root = Branch _ _ => fail
-  | _ => idtac
-  end);
-  (solve[trivial]+dol+dor).
+
+Ltac act := solve[trivial]+dol+dor.
 Ltac work := unfold Combine;repeat econstructor;simpl;solve [repeat act].
 
 Definition Split(T : Tree) :
@@ -89,5 +83,5 @@ Definition Split(T : Tree) :
             [|destruct T2, T1_2, T1_1_2, T1_1_1_2 ]]]]]];
   work.
 Defined.
-
+Print Split.
 Extraction Split.
