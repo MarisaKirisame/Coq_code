@@ -9,7 +9,7 @@ Inductive Tree : Set :=
 Definition AllRoot(l : list Tree) := 
   forallb (fun e => match e with Root => true | _ => false end) l.
 
-Definition Combine(T1 T2 T3 T4 T5 T6 T7 : Tree) : Tree :=
+Definition Combine_helper(T1 T2 T3 T4 T5 T6 T7 : Tree) : Tree :=
   match AllRoot (T1 :: T2 :: T3 :: T4 :: nil) with
   | false => (Branch (Branch (Branch (Branch (Branch (Branch T7 T6) T5) T4) T3) T2) T1)
   | true => 
@@ -27,6 +27,9 @@ Definition Combine(T1 T2 T3 T4 T5 T6 T7 : Tree) : Tree :=
           end
       end
   end.
+
+Definition Combine := 
+  (prod_curry(prod_curry(prod_curry(prod_curry(prod_curry(prod_curry Combine_helper)))))).
 
 Ltac clean :=
   repeat (
@@ -64,16 +67,16 @@ Ltac dor :=
   end.
 
 Ltac act := solve[trivial]+dol+dor.
-Ltac work := unfold Combine;repeat econstructor;simpl;solve [repeat act].
+Ltac work := unfold Combine_helper;repeat econstructor;simpl;solve [repeat act].
 
-Definition Split(T : Tree) :
+Definition Split_helper(T : Tree) :
   { T1 : Tree &
     { T2 : Tree &
       { T3 : Tree &
         { T4 : Tree &
           { T5 : Tree &
             { T6 : Tree &
-              { T7 : Tree | Combine T1 T2 T3 T4 T5 T6 T7 = T } } } } } } }.
+              { T7 : Tree | Combine_helper T1 T2 T3 T4 T5 T6 T7 = T } } } } } } }.
   destruct T;
   [|destruct T1;
     [|destruct T1_1;[|
@@ -83,5 +86,10 @@ Definition Split(T : Tree) :
             [|destruct T2, T1_2, T1_1_2, T1_1_1_2 ]]]]]];
   work.
 Defined.
-Print Split.
-Extraction Split.
+
+Definition Split(T : Tree) : Tree * Tree * Tree * Tree * Tree * Tree * Tree :=
+  match Split_helper T with
+  | existT _ T1 (existT _ T2 (existT _ T3 
+      (existT _ T4 (existT _ T5 (existT _ T6 (exist _ T7 _)))))) => 
+      (T1, T2, T3, T4, T5, T6, T7)
+  end.
