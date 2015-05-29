@@ -1,4 +1,4 @@
-Require Import List.
+Require Import List Tactic.
 
 Set Implicit Arguments.
 
@@ -31,39 +31,21 @@ Definition Combine_helper(T1 T2 T3 T4 T5 T6 T7 : Tree) : Tree :=
 Definition Combine := 
   (prod_curry(prod_curry(prod_curry(prod_curry(prod_curry(prod_curry Combine_helper)))))).
 
-Ltac clean :=
-  repeat (
-    match goal with
-    | h : ?x = ?x |- _ => clear h
-    | h : Tree |- _ => clear h
-    | _ => idtac end).
-Ltac l T := assert(T = Root);[solve [trivial]|];clean;simpl in *.
-Ltac get_goal := match goal with |- ?x => x end.
-Ltac r T :=
-  match get_goal with ?x => assert (exists T1 T2 : Tree, T = Branch T1 T2 /\ x) end;
-  [
-    econstructor;
-    econstructor;
-    (split;[solve [trivial]|])|
-    simpl in *;
-    repeat(
-      match goal with
-      | h : exists _, _ |- _ => destruct h
-      | _ => idtac end);
-    tauto
-  ];
-  clean;simpl in *.
+Ltac l T := unify T Root;simpl in *.
+
+Ltac r T := 
+  let lt := fresh in
+    let rt := fresh in 
+      evar (lt : Tree);evar (rt : Tree);unify T (Branch lt rt);simpl in *.
 
 Ltac dol :=
   match get_goal with
-  | context f [match ?X with _ => _ end] => 
-      clean;l X
+  | context f [match ?X with _ => _ end] => l X
   end.
 
 Ltac dor :=
   match get_goal with
-  | context f [match ?X with _ => _ end] => 
-      clean;r X
+  | context f [match ?X with _ => _ end] => r X
   end.
 
 Ltac act := solve[trivial]+dol+dor.
