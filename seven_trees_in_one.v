@@ -51,6 +51,19 @@ Ltac dor :=
 Ltac act := solve[trivial]+dol+dor.
 Ltac work := unfold Combine_helper;repeat econstructor;simpl;solve [repeat act].
 
+Definition box P NT (N : NT) : Type := P.
+
+Arguments box : simpl never.
+Ltac make_sandbox T N := 
+  let f := fresh in
+    evar (f : box T N);
+    let g := get_goal in 
+      let H := fresh in
+        assert(False -> g) as H;[intro|clear H].
+Ltac exit_sandbox := exfalso;tauto.
+Ltac set_result N T := match goal with | _ := ?X : box _ N |- _ => unify X T end.
+Ltac get_result N := match goal with | _ := ?X : box _ N |- _ => X end.
+
 Definition Split_helper(T : Tree) :
   { T1 : Tree &
     { T2 : Tree &
@@ -59,14 +72,17 @@ Definition Split_helper(T : Tree) :
           { T5 : Tree &
             { T6 : Tree &
               { T7 : Tree | Combine_helper T1 T2 T3 T4 T5 T6 T7 = T } } } } } } }.
+  make_sandbox Tree tt.
+  set_result tt Root.
+  let l := get_result tt in idtac l.
+  exit_sandbox.
   destruct T;
   [|destruct T1;
     [|destruct T1_1;[|
         destruct T1_1_1;[|
           destruct T1_1_1_1;[|
             destruct T1_1_1_1_1;
-            [|destruct T2, T1_2, T1_1_2, T1_1_1_2 ]]]]]];
-  work.
+            [|destruct T2, T1_2, T1_1_2, T1_1_1_2]]]]]];work.
 Defined.
 
 Definition Split(T : Tree) : Tree * Tree * Tree * Tree * Tree * Tree * Tree :=
