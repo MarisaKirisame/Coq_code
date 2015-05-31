@@ -114,3 +114,27 @@ Definition Split(T : Tree) : Tree * Tree * Tree * Tree * Tree * Tree * Tree :=
       (existT _ T4 (existT _ T5 (existT _ T6 (exist _ T7 _)))))) => 
       (T1, T2, T3, T4, T5, T6, T7)
   end.
+
+Goal forall t, Combine (Split t) = t.
+  intros.
+  unfold Split, Combine, Split_helper.
+  repeat (match_type_destruct Tree;trivial).
+Qed.
+
+Goal forall t, Split (Combine t) = t.
+  intros.
+  destruct t as [[[[[[]]]]]].
+  unfold Split.
+  destruct Split_helper.
+  destruct s as [? [? [? [? [? []]]]]].
+  unfold Split, Combine, Split_helper, Combine_helper in *.
+  repeat (
+    simpl in *;
+    trivial;
+    match_type_destruct Tree||
+    discriminate||
+    match goal with
+    | H : _ = _ : Tree |- _ => invcs H
+    end||
+    subst).
+Qed.
