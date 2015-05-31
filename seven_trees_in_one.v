@@ -48,21 +48,52 @@ Ltac dor :=
   | context f [match ?X with _ => _ end] => r X
   end.
 
-Ltac act := solve[trivial]+dol+dor.
-Ltac work := unfold Combine_helper;repeat econstructor;simpl;solve [repeat act].
+Ltac act := dol+dor.
+
+Ltac work := unfold Combine_helper;repeat econstructor;simpl;solve [repeat (trivial;act)].
 
 Definition box P NT (N : NT) : Type := P.
+Inductive sandbox_closer : Prop := ms : sandbox_closer -> sandbox_closer.
+Theorem sandbox_closer_exit : sandbox_closer -> False.
+  induction 1;trivial.
+Qed.
 
 Arguments box : simpl never.
+
 Ltac make_sandbox T N := 
   let f := fresh in
     evar (f : box T N);
     let g := get_goal in 
       let H := fresh in
-        assert(False -> g) as H;[intro|clear H].
-Ltac exit_sandbox := exfalso;tauto.
+        assert(sandbox_closer -> g) as H;[intro|clear H].
+
+Ltac exit_sandbox := 
+  exfalso;
+  match goal with
+  | X : sandbox_closer |- _ => apply sandbox_closer_exit in X;tauto
+  end.
+
 Ltac set_result N T := match goal with | _ := ?X : box _ N |- _ => unify X T end.
+
 Ltac get_result N := match goal with | _ := ?X : box _ N |- _ => X end.
+
+Ltac clear_result N := match goal with | H := _ : box _ N |- _ => clear H end.
+
+Ltac get_destruct_next N := 
+  unfold Combine_helper;
+  repeat econstructor;
+  simpl;
+  repeat act;
+  repeat f_equal;
+  match goal with
+  |- _ = ?X => is_var X;set_result N X
+  end.
+
+Ltac detect_destruct :=
+  make_sandbox Tree tt;
+  [get_destruct_next tt;exit_sandbox|];
+  let ret := get_result tt in destruct ret;
+  clear_result tt.
 
 Definition Split_helper(T : Tree) :
   { T1 : Tree &
@@ -72,17 +103,9 @@ Definition Split_helper(T : Tree) :
           { T5 : Tree &
             { T6 : Tree &
               { T7 : Tree | Combine_helper T1 T2 T3 T4 T5 T6 T7 = T } } } } } } }.
-  make_sandbox Tree tt.
-  set_result tt Root.
-  let l := get_result tt in idtac l.
-  exit_sandbox.
-  destruct T;
-  [|destruct T1;
-    [|destruct T1_1;[|
-        destruct T1_1_1;[|
-          destruct T1_1_1_1;[|
-            destruct T1_1_1_1_1;
-            [|destruct T2, T1_2, T1_1_2, T1_1_1_2]]]]]];work.
+  repeat (work||detect_destruct).
+  Unshelve.
+  all:trivial.
 Defined.
 
 Definition Split(T : Tree) : Tree * Tree * Tree * Tree * Tree * Tree * Tree :=
