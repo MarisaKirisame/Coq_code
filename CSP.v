@@ -1,5 +1,5 @@
+Require Import Arith.
 Set Implicit Arguments.
-Fixpoint fact n := match n with | O => 1 | S n' => n * fact n' end.
 Fixpoint fact_csp T (F : nat -> T) n : T :=
   match n with
   | O => F 1
