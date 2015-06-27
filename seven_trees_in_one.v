@@ -52,33 +52,6 @@ Ltac act := dol+dor.
 
 Ltac work := unfold Combine_helper;repeat econstructor;simpl;solve [repeat (trivial;act)].
 
-Definition box P NT (N : NT) : Type := P.
-Inductive sandbox_closer : Prop := ms : sandbox_closer -> sandbox_closer.
-Theorem sandbox_closer_exit : sandbox_closer -> False.
-  induction 1;trivial.
-Qed.
-
-Arguments box : simpl never.
-
-Ltac make_sandbox T N := 
-  let f := fresh in
-    evar (f : box T N);
-    let g := get_goal in 
-      let H := fresh in
-        assert(sandbox_closer -> g) as H;[intro|clear H].
-
-Ltac exit_sandbox := 
-  exfalso;
-  match goal with
-  | X : sandbox_closer |- _ => apply sandbox_closer_exit in X;tauto
-  end.
-
-Ltac set_result N T := match goal with | _ := ?X : box _ N |- _ => unify X T end.
-
-Ltac get_result N := match goal with | _ := ?X : box _ N |- _ => X end.
-
-Ltac clear_result N := match goal with | H := _ : box _ N |- _ => clear H end.
-
 Ltac get_destruct_next N := 
   unfold Combine_helper;
   repeat econstructor;
