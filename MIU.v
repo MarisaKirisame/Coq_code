@@ -1,4 +1,4 @@
-Require Export List Program Arith Omega.
+Require Export List Program Arith Omega MoreList.
 Export Nat.
 Set Implicit Arguments.
 Inductive letter := M | I | U.
@@ -61,6 +61,11 @@ Theorem gen_non_div_three l : Generatable [M;I] l ->
   match goal with H : exists _, _ |- _ => destruct H end;
   omega||apply IHGeneratable.
   destruct x;omega||exists x;omega.
+  erewrite (foldl_identity ((fun (n : nat) (e : letter) => match e with
+                                              | M => 0
+                                              | I => 1
+                                              | U => 3
+                                              end + n))) in H0.
 Admitted.
 Goal ~ Generatable [M;I] [M;U].
   intuition;apply gen_non_div_three in H.

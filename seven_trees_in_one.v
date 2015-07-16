@@ -38,15 +38,8 @@ Ltac r T :=
     let rt := fresh in 
       evar (lt : Tree);evar (rt : Tree);unify T (Branch lt rt);simpl in *.
 
-Ltac dol :=
-  match get_goal with
-  | context f [match ?X with _ => _ end] => l X
-  end.
-
-Ltac dor :=
-  match get_goal with
-  | context f [match ?X with _ => _ end] => r X
-  end.
+Ltac dol := let g := get_goal in let F := (fun x => l x) in get_match g F.
+Ltac dor := let g := get_goal in let F := (fun x => r x) in get_match g F.
 
 Ltac act := dol+dor.
 
