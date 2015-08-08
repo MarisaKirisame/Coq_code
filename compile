@@ -1,0 +1,2 @@
+coqc -R ../CoqMonad Monad -R ../CoqCore Core $1
+
