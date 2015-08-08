@@ -1,1 +1,1 @@
-coqide -R ../CoqMonad Monad -R ../CoqCore Core $1
+coqide -R ../CoqMonad Monad -R ../CoqCore Core -R ../CoqCommon Common $1
