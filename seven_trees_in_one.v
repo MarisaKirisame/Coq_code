@@ -1,27 +1,30 @@
-Require Import List Tactic.
+Require Import List CoqCore.Tactic.
 
 Set Implicit Arguments.
 
-Inductive Tree : Set :=
-| Root
-| Branch : Tree -> Tree -> Tree.
+Inductive Tree :=
+| Empty
+| Node : Tree -> Tree -> Tree.
 
-Definition AllRoot(l : list Tree) := 
-  forallb (fun e => match e with Root => true | _ => false end) l.
+Definition IsEmpty T :=
+  match T with
+  | Empty => true
+  | Node _ _ => false
+  end.
 
 Definition Combine_helper(T1 T2 T3 T4 T5 T6 T7 : Tree) : Tree :=
-  match AllRoot (T1 :: T2 :: T3 :: T4 :: nil) with
-  | false => (Branch (Branch (Branch (Branch (Branch (Branch T7 T6) T5) T4) T3) T2) T1)
+  match forallb IsEmpty (T1 :: T2 :: T3 :: T4 :: nil) with
+  | false => (Node (Node (Node (Node (Node (Node T7 T6) T5) T4) T3) T2) T1)
   | true => 
       match T5 with
-      | Branch T5a T5b => (Branch (Branch (Branch (Branch Root T7) T6) T5a) T5b)
-      | Root => 
+      | Node T5a T5b => (Node (Node (Node (Node Empty T7) T6) T5a) T5b)
+      | Empty => 
           match T6 with
-          | Branch _ _ => (Branch (Branch (Branch (Branch (Branch T6 T7) Root) Root) Root) Root)
-          | Root => 
+          | Node _ _ => (Node (Node (Node (Node (Node T6 T7) Empty) Empty) Empty) Empty)
+          | Empty => 
               match T7 with
-              | (Branch (Branch (Branch (Branch T7a T7b) T7c) T7d) T7e) =>
-                  (Branch (Branch (Branch (Branch (Branch Root T7a) T7b) T7c) T7d) T7e)
+              | (Node (Node (Node (Node T7a T7b) T7c) T7d) T7e) =>
+                  (Node (Node (Node (Node (Node Empty T7a) T7b) T7c) T7d) T7e)
               | _ => T7
               end
           end
@@ -29,35 +32,40 @@ Definition Combine_helper(T1 T2 T3 T4 T5 T6 T7 : Tree) : Tree :=
   end.
 
 Definition Combine := 
-  (prod_curry(prod_curry(prod_curry(prod_curry(prod_curry(prod_curry Combine_helper)))))).
+  prod_curry(prod_curry(prod_curry(prod_curry(prod_curry(prod_curry Combine_helper))))).
 
-Ltac l T := unify T Root;simpl in *.
+Ltac l T := unify T Empty; simpl in *.
 
 Ltac r T := 
   let lt := fresh in
     let rt := fresh in 
-      evar (lt : Tree);evar (rt : Tree);unify T (Branch lt rt);simpl in *.
+      evar (lt : Tree); evar (rt : Tree); unify T (Node lt rt); simpl in *.
 
 Ltac dol := let g := get_goal in let F := (fun x => l x) in get_match g F.
 Ltac dor := let g := get_goal in let F := (fun x => r x) in get_match g F.
 
-Ltac act := dol+dor.
+Ltac act := unfold andb; dol + dor.
 
-Ltac work := unfold Combine_helper;repeat econstructor;simpl;solve [repeat (trivial;act)].
+Ltac prepare_work := unfold Combine_helper, IsEmpty; simpl; repeat econstructor.
+
+Ltac work := 
+  prepare_work;
+  solve [repeat (trivial; act)].
 
 Ltac get_destruct_next N := 
-  unfold Combine_helper;
-  repeat econstructor;
-  simpl;
-  repeat act;
-  repeat f_equal;
+  prepare_work;
+  repeat act; repeat f_equal;
   match goal with
-  |- _ = ?X => is_var X;set_result N X
+  |- _ = ?X => is_var X; set_result N X
   end.
 
 Ltac detect_destruct :=
   make_sandbox Tree tt;
-  [get_destruct_next tt;exit_sandbox|];
+  [
+    get_destruct_next tt;
+    repeat match get_goal with context [?t] => is_evar t; l t end;
+    exit_sandbox|
+  ];
   let ret := get_result tt in destruct ret;
   clear_result tt.
 
@@ -70,8 +78,6 @@ Definition Split_helper(T : Tree) :
             { T6 : Tree &
               { T7 : Tree | Combine_helper T1 T2 T3 T4 T5 T6 T7 = T } } } } } } }.
   repeat (work||detect_destruct).
-  Unshelve.
-  all:trivial.
 Defined.
 
 Definition Split(T : Tree) : Tree * Tree * Tree * Tree * Tree * Tree * Tree :=
@@ -82,9 +88,8 @@ Definition Split(T : Tree) : Tree * Tree * Tree * Tree * Tree * Tree * Tree :=
   end.
 
 Goal forall t, Combine (Split t) = t.
-  intros.
-  unfold Split, Combine, Split_helper.
-  repeat (match_type_destruct Tree;trivial).
+  intros; unfold Split, Combine, Split_helper, prod_curry.
+  repeat (match_type_destruct Tree; trivial).
 Qed.
 
 Goal forall t, Split (Combine t) = t.
@@ -95,6 +100,7 @@ Goal forall t, Split (Combine t) = t.
   destruct s as [? [? [? [? [? []]]]]].
   unfold Split, Combine, Split_helper, Combine_helper in *.
   repeat (
+    unfold andb, IsEmpty in *;
     simpl in *;
     trivial;
     match_type_destruct Tree||
