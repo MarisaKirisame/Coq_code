@@ -1,4 +1,4 @@
-Require Import List CoqCore.Tactic.
+Require Import CoqCore.Tactic.
 
 Set Implicit Arguments.
 
@@ -6,47 +6,41 @@ Inductive Tree :=
 | Empty
 | Node : Tree -> Tree -> Tree.
 
-Definition IsEmpty T :=
-  match T with
-  | Empty => true
-  | Node _ _ => false
-  end.
+Notation "[ a , b ]" := (Node a b).
+Notation "0" := Empty.
 
-Definition Combine_helper(T1 T2 T3 T4 T5 T6 T7 : Tree) : Tree :=
-  match forallb IsEmpty (T1 :: T2 :: T3 :: T4 :: nil) with
-  | false => (Node (Node (Node (Node (Node (Node T7 T6) T5) T4) T3) T2) T1)
-  | true => 
+Definition Combine_helper (T1 T2 T3 T4 T5 T6 T7 : Tree) : Tree :=
+  match (T1, T2, T3, T4) with
+  | (0, 0, 0, 0) => 
       match T5 with
-      | Node T5a T5b => (Node (Node (Node (Node Empty T7) T6) T5a) T5b)
-      | Empty => 
+      | Node T5a T5b => [[[[0, T7], T6], T5a], T5b]
+      | 0 => 
           match T6 with
-          | Node _ _ => (Node (Node (Node (Node (Node T6 T7) Empty) Empty) Empty) Empty)
-          | Empty => 
+          | Node _ _ => [[[[[T6, T7], 0], 0], 0], 0]
+          | 0 => 
               match T7 with
-              | (Node (Node (Node (Node T7a T7b) T7c) T7d) T7e) =>
-                  (Node (Node (Node (Node (Node Empty T7a) T7b) T7c) T7d) T7e)
+              | [[[[T7a, T7b], T7c], T7d], T7e] =>
+                  [[[[[0, T7a], T7b], T7c], T7d], T7e]
               | _ => T7
               end
           end
       end
+  | _ => [[[[[[T7, T6], T5], T4], T3], T2], T1]
   end.
 
-Definition Combine := 
-  prod_curry(prod_curry(prod_curry(prod_curry(prod_curry(prod_curry Combine_helper))))).
+Definition Combine X := 
+  match X with (t1, t2, t3, t4, t5, t6, t7) => Combine_helper t1 t2 t3 t4 t5 t6 t7 end.
 
 Ltac l T := unify T Empty; simpl in *.
 
 Ltac r T := 
   let lt := fresh in
-    let rt := fresh in 
-      evar (lt : Tree); evar (rt : Tree); unify T (Node lt rt); simpl in *.
+  let rt := fresh in 
+  evar (lt : Tree); evar (rt : Tree); unify T (Node lt rt); simpl in *.
 
-Ltac dol := let g := get_goal in let F := (fun x => l x) in get_match g F.
-Ltac dor := let g := get_goal in let F := (fun x => r x) in get_match g F.
+Ltac act := let res := get_match ltac:get_goal ltac:(fun x => x) in l res + r res.
 
-Ltac act := unfold andb; dol + dor.
-
-Ltac prepare_work := unfold Combine_helper, IsEmpty; simpl; repeat econstructor.
+Ltac prepare_work := repeat econstructor; compute.
 
 Ltac work := 
   prepare_work;
@@ -88,19 +82,17 @@ Definition Split(T : Tree) : Tree * Tree * Tree * Tree * Tree * Tree * Tree :=
   end.
 
 Goal forall t, Combine (Split t) = t.
-  intros; unfold Split, Combine, Split_helper, prod_curry.
-  repeat (match_type_destruct Tree; trivial).
+  intros; unfold Split, Combine.
+  destruct Split_helper as [? [? [? [? [? [? []]]]]]]; subst.
+  simpl in *; trivial.
 Qed.
 
 Goal forall t, Split (Combine t) = t.
   intros.
   destruct t as [[[[[[]]]]]].
-  unfold Split.
-  destruct Split_helper.
-  destruct s as [? [? [? [? [? []]]]]].
-  unfold Split, Combine, Split_helper, Combine_helper in *.
+  unfold Split; destruct Split_helper as [? [? [? [? [? [? []]]]]]].
+  unfold Combine, Combine_helper in *.
   repeat (
-    unfold andb, IsEmpty in *;
     simpl in *;
     trivial;
     match_type_destruct Tree||
