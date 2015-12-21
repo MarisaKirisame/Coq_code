@@ -44,7 +44,7 @@ Ltac prepare_work := repeat econstructor; compute.
 
 Ltac work := 
   prepare_work;
-  solve [repeat (trivial; act)].
+  solve [repeat (trivial; compute; act)].
 
 Ltac get_destruct_next N := 
   prepare_work;
