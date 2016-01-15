@@ -28,3 +28,7 @@ Goal forall a b c, a ⨯ (b ⨯ c) = (a ∘ c) * b - (a ∘ b) * c.
   intros; compute[dotproduct crossproduct mulitply minus]; simpl.
   f_equal; ring.
 Qed.
+
+Goal forall a b c d, ((a ⨯ b) ∘ (c ⨯ d) = (a ∘ c) * (b ∘ d) - (b ∘ c) * (a ∘ d))%Z.
+  intros; compute [dotproduct crossproduct]; simpl; ring.
+Qed.
