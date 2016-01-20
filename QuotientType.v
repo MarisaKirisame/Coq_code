@@ -6,21 +6,21 @@ Definition quotient A EQ := forall B (f : A -> B) (H : forall l r, EQ l r -> f l
 Definition mk_quotient A EQ (a : A) : @quotient A EQ := fun _ f _ => f a.
 Definition EQ_eq A EQ (l r : A) : EQ l r -> mk_quotient EQ l = mk_quotient EQ r :=
   ltac:(intros; unfold mk_quotient; repeat ext; auto).
-Definition quotient_elim_eq A B C (l : @quotient A B) lf lfp rf rfp :
-  lf = rf -> l C lf lfp = l C rf rfp.
+Definition quotient_elim_eq A B C (q : @quotient A B) lf lfp rf rfp :
+  lf = rf -> q C lf lfp = q C rf rfp.
   intros; subst; f_equal; apply proof_irrelevance.
 Qed.
 
-Definition PFE l r := l mod 5 = r mod 5.
-Definition MF := quotient PFE.
-Definition mk_MF (n : nat) : MF := mk_quotient PFE n.
+Definition MFE l r := l mod 5 = r mod 5.
+Definition MFR := quotient MFE.
+Definition mk_MFR (n : nat) : MFR := mk_quotient MFE n.
 
 Definition of_nat_lt_eq n lv lp rv rp :
   lv = rv -> @Fin.of_nat_lt lv n lp = @Fin.of_nat_lt rv n rp.
   intros; subst; f_equal; apply proof_irrelevance.
 Qed.
 
-Program Definition toFin (l : MF) : Fin.t 5 := 
+Program Definition toFin (l : MFR) : Fin.t 5 := 
   l (Fin.t 5) (fun n => @Fin.of_nat_lt (n mod 5) _ _) _.
 Next Obligation.
   repeat match_destruct; omega.
@@ -30,35 +30,33 @@ Next Obligation.
   compute in *; trivial.
 Defined.
 
-Program Definition MFPlus (l r : MF) : MF := 
-  l MF (fun ln => r MF (fun rn => mk_MF (ln + rn)) _) 
+Program Definition MFRPlus (l r : MFR) : MFR := 
+  l MFR (fun ln => r MFR (fun rn => mk_MFR (ln + rn)) _) 
     (fun _ _ _ => quotient_elim_eq _ _ _ _).
 Next Obligation.
-  unfold mk_MF, mk_quotient, PFE in *; repeat ext.
+  unfold mk_MFR, mk_quotient, MFE in *; repeat ext.
   apply H2.
   rewrite (Nat.add_mod ln l0), (Nat.add_mod ln r0); f_equal; omega.
 Qed.
 Next Obligation.
-  ext; apply EQ_eq; unfold PFE in *.
+  ext; apply EQ_eq; unfold MFE in *.
   rewrite (Nat.add_mod H), (Nat.add_mod H0); f_equal; omega.
 Qed.
 
-Program Definition MFMult (l r : MF) : MF := 
-  l MF (fun ln => r MF (fun rn => mk_MF (ln * rn)) _) 
+Program Definition MFRMult (l r : MFR) : MFR := 
+  l MFR (fun ln => r MFR (fun rn => mk_MFR (ln * rn)) _) 
     (fun _ _ _ => quotient_elim_eq _ _ _ _).
 Next Obligation.
-  unfold mk_MF, mk_quotient, PFE in *; repeat ext.
+  unfold mk_MFR, mk_quotient, MFE in *; repeat ext.
   apply H2.
   rewrite (Nat.mul_mod ln l0), (Nat.mul_mod ln r0); do 2 f_equal; omega.
 Qed.
 Next Obligation.
-  ext; apply EQ_eq; unfold PFE in *.
+  ext; apply EQ_eq; unfold MFE in *.
   rewrite (Nat.mul_mod H), (Nat.mul_mod H0); do 2 f_equal; omega.
 Qed.
 
-Program Definition Evil (l : MF) : nat := l nat id _.
-Next Obligation.
-Admitted.
-
-Eval compute in toFin (MFPlus (mk_MF 4) (mk_MF 7)).
-Eval compute in Evil (MFPlus (mk_MF 4) (mk_MF 7)).
+Goal mk_MFR 2 = mk_MFR 7.
+  unfold mk_MFR, mk_quotient; repeat ext.
+  apply H1; unfold MFE; trivial.
+Qed.
