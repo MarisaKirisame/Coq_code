@@ -1,5 +1,4 @@
-Require Import CoqCore.Tactic.
-
+Require Import CoqUtil.Tactic.
 Set Implicit Arguments.
 
 Inductive Tree :=
