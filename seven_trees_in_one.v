@@ -1,4 +1,4 @@
-Require Import CoqUtil.Tactic.
+Require Import Program CoqUtil.Tactic.
 Set Implicit Arguments.
 
 Inductive Tree :=
@@ -8,6 +8,40 @@ Inductive Tree :=
 Notation "[ a , b ]" := (Node a b).
 Notation "0" := Empty.
 
+Record ISO L R :=
+  {
+    f : L -> R;
+    g : R -> L;
+    fg : forall x, f (g x) = x;
+    gf : forall x, g (f x) = x
+  }.
+
+Program Definition sig_ISO L R :
+  { f : L -> R &
+             { g : forall r : R, { l : L | f l = r } |
+               forall x, g (f x) = x } } ->
+  ISO L R := fun x => {|
+                 f := projT1 x;
+                 g := projT2 x |}.
+
+Next Obligation.
+  destruct X; simpl; congruence.
+Defined.
+Next Obligation.
+  destruct X; simpl.
+  assert(` (X (x x1)) = ` (X (x x0))) by (rewrite e; trivial).
+  rewrite !H in *; simpl in *; trivial.
+Defined.
+Goal ISO (Tree * Tree * Tree * Tree * Tree * Tree * Tree) Tree.
+  simple refine
+         (sig_ISO (existT _ (fun r => _)
+                          (exist _ (fun r => (exist _ _ _)) (fun r => _)))).
+  Focus 3.
+  simpl.
+  Check ?y0.
+  apply sig_ISO.
+  repeat econstructor.
+  unify ?f (fun x : Tree * Tree * Tree * Tree * Tree * Tree * Tree => 0).
 Definition Combine_helper (T1 T2 T3 T4 T5 T6 T7 : Tree) : Tree :=
   match (T1, T2, T3, T4) with
   | (0, 0, 0, 0) => 
@@ -69,7 +103,9 @@ Definition Split_helper(T : Tree) :
         { T4 : Tree &
           { T5 : Tree &
             { T6 : Tree &
-              { T7 : Tree | Combine_helper T1 T2 T3 T4 T5 T6 T7 = T } } } } } } }.
+                   { T7 : Tree | Combine_helper T1 T2 T3 T4 T5 T6 T7 = T } } } } } } }.
+  prepare_work.
+  Unshelve.
   repeat (work||detect_destruct).
 Defined.
 
