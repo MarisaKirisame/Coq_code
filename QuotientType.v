@@ -2,7 +2,8 @@ Require Import Program Arith Omega CoqCore.Tactic.
 Set Implicit Arguments.
 Set Universe Polymorphism.
 
-Definition quotient A EQ := forall B (f : A -> B) (H : forall l r, EQ l r -> f l = f r), B.
+Definition quotient A EQ :=
+  forall B (f : A -> B) (H : forall l r, EQ l r -> f l = f r), B.
 Definition mk_quotient A EQ (a : A) : @quotient A EQ := fun _ f _ => f a.
 Definition EQ_eq A EQ (l r : A) : EQ l r -> mk_quotient EQ l = mk_quotient EQ r :=
   ltac:(intros; unfold mk_quotient; repeat ext; auto).
