@@ -1,19 +1,33 @@
-Require Export Program Omega.
+Require Import Program Omega.
 Set Implicit Arguments.
-Definition iso A B := exists (f : A -> B) (g : B -> A), 
-  (forall l, f (g l) = l) /\ forall r, g (f r) = r.
-Theorem iso_id A : iso A A.
-  exists (@id A) (@id A);intuition.
-Qed.
+
+Class iso A B :=
+  {
+    f : A -> B;
+    g : B -> A;
+    fg : forall x, f (g x) = x;
+    gf : forall x, g (f x) = x
+  }.
+
+Instance iso_id A : iso A A :=
+  {
+  }.
+  all: intuition.
+Defined.
 Hint Resolve iso_id.
+
+Instance iso_sym A B (I : iso A B) : iso B A :=
+  {
+  }.
+  all: destruct I; intuition.
+Defined.
+
 Goal nat <> bool.
   intuition.
-  assert(iso nat bool) by (rewrite H;auto).
-  destruct H0.
-  destruct H0.
-  intuition.
-  clear H.
-  pose proof (H1 true);specialize (H1 false).
-  specialize(H2 (S ((x0 true) + (x0 false)))).
-  destruct (x (S _));do 2 destruct x0;simpl in *;try rewrite H1 in *;try discriminate||omega.
+  assert(iso nat bool) by (rewrite H; auto).
+  destruct X.
+  pose proof (fg0 true); specialize (fg0 false).
+  specialize(gf0 (S ((g0 true) + (g0 false)))).
+  destruct (f0 (S _)); do 2 destruct g0;
+    simpl in *; try rewrite H1 in *; discriminate || omega.
 Qed.
