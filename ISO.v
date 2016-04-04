@@ -22,6 +22,12 @@ Instance iso_sym A B (I : iso A B) : iso B A :=
   all: destruct I; intuition.
 Defined.
 
+Instance iso_trans A B C (L : iso A B) (R : iso B C) : iso A C :=
+  {
+  }.
+  all: destruct L, R; intuition; congruence.
+Defined.
+
 Goal nat <> bool.
   intuition.
   assert(iso nat bool) by (rewrite H; auto).
