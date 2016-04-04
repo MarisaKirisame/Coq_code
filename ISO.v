@@ -28,6 +28,14 @@ Instance iso_trans A B C (L : iso A B) (R : iso B C) : iso A C :=
   all: destruct L, R; intuition; congruence.
 Defined.
 
+Definition cardinality T N := iso T { n | n < N }.
+
+Goal cardinality False 0.
+  simple refine (Build_iso _ _ _ _); intuition.
+  destruct H; omega.
+  destruct x; omega.
+Qed.
+
 Goal nat <> bool.
   intuition.
   assert(iso nat bool) by (rewrite H; auto).
