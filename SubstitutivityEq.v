@@ -24,11 +24,11 @@ Qed.
 
 Goal forall T (l r : T), equalimpl l r -> equaliff l r.
   unfold equaliff, equalimpl; intuition.
-  specialize(H P); intuition.
-  specialize(H (fun t => P t -> P l)); intuition.
+  + apply H; trivial.
+  + specialize(H (fun t => P t -> P l)); intuition.
 Qed.
 
 Goal forall T (l r : T), equaliff l r <-> l = r.
-  intuition; subst; try apply equaliff_refl.
+  intuition; subst; try apply equaliff_refl; [].
   unfold equaliff in *; specialize (H (fun x => r = x)); intuition.
 Qed.
